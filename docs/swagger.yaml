@@ -1,0 +1,1259 @@
+definitions:
+  github_com_michaelwp_student_attendance_internal_models.AbsentRequest:
+    properties:
+      class_id:
+        type: integer
+      created_at:
+        type: string
+      id:
+        type: integer
+      reason:
+        type: string
+      request_date:
+        type: string
+      status:
+        $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus'
+      student_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus:
+    enum:
+    - pending
+    - approved
+    - rejected
+    type: string
+    x-enum-varnames:
+    - AbsentRequestStatusPending
+    - AbsentRequestStatusApproved
+    - AbsentRequestStatusRejected
+  github_com_michaelwp_student_attendance_internal_models.Attendance:
+    properties:
+      class_id:
+        type: integer
+      created_at:
+        type: string
+      date:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      status:
+        $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AttendanceStatus'
+      student_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_michaelwp_student_attendance_internal_models.AttendanceStatus:
+    enum:
+    - present
+    - absent
+    - late
+    type: string
+    x-enum-varnames:
+    - AttendanceStatusPresent
+    - AttendanceStatusAbsent
+    - AttendanceStatusLate
+  github_com_michaelwp_student_attendance_internal_models.Class:
+    properties:
+      created_at:
+        type: string
+      description:
+        type: string
+      homeroom_teacher:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_michaelwp_student_attendance_internal_models.Student:
+    properties:
+      classes_id:
+        type: integer
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      phone:
+        type: string
+      student_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_michaelwp_student_attendance_internal_models.Teacher:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      first_name:
+        type: string
+      id:
+        type: integer
+      last_name:
+        type: string
+      phone:
+        type: string
+      teacher_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /absent-requests:
+    post:
+      consumes:
+      - application/json
+      description: Create a new absence request
+      parameters:
+      - description: Absent request data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Absent request created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create absent request
+      tags:
+      - Absent Requests
+  /absent-requests/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an absent request
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent request deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid absent request ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete absent request
+      tags:
+      - Absent Requests
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific absent request by ID
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent request retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid absent request ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Absent request not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get absent request by ID
+      tags:
+      - Absent Requests
+  /absent-requests/{id}/status:
+    patch:
+      consumes:
+      - application/json
+      description: Update the status of an absent request (approve/reject)
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Status update with status field
+        in: body
+        name: status
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent request status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or status value
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Absent request not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update absent request status
+      tags:
+      - Absent Requests
+  /absent-requests/class-id/{classId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve absent requests for a specific class
+      parameters:
+      - description: Class ID
+        in: path
+        name: classId
+        required: true
+        type: integer
+      - default: 10
+        description: Number of requests to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of requests to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent requests retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid class ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get absent requests by class
+      tags:
+      - Absent Requests
+  /absent-requests/pending:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all pending absent requests
+      parameters:
+      - default: 10
+        description: Number of requests to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of requests to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Pending absent requests retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get pending absent requests
+      tags:
+      - Absent Requests
+  /absent-requests/student-id/{studentId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve absent requests for a specific student
+      parameters:
+      - description: Student ID
+        in: path
+        name: studentId
+        required: true
+        type: string
+      - default: 10
+        description: Number of requests to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of requests to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent requests retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Student ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get absent requests by student
+      tags:
+      - Absent Requests
+  /attendances:
+    post:
+      consumes:
+      - application/json
+      description: Create a new attendance record for a student
+      parameters:
+      - description: Attendance data
+        in: body
+        name: attendance
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Attendance'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Attendance record created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create attendance record
+      tags:
+      - Attendances
+  /attendances/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an attendance record
+      parameters:
+      - description: Attendance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance record deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid attendance ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete attendance record
+      tags:
+      - Attendances
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific attendance record by ID
+      parameters:
+      - description: Attendance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance record retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid attendance ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Attendance record not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get attendance by ID
+      tags:
+      - Attendances
+    put:
+      consumes:
+      - application/json
+      description: Update an attendance record
+      parameters:
+      - description: Attendance ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Attendance data
+        in: body
+        name: attendance
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Attendance'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance record updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update attendance record
+      tags:
+      - Attendances
+  /attendances/class-id/{classId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve attendance records for a specific class
+      parameters:
+      - description: Class ID
+        in: path
+        name: classId
+        required: true
+        type: integer
+      - default: 10
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance records retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid class ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get attendance by class
+      tags:
+      - Attendances
+  /attendances/date-range:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve attendance records within a specific date range
+      parameters:
+      - description: Start date (YYYY-MM-DD)
+        format: date
+        in: query
+        name: start_date
+        required: true
+        type: string
+      - description: End date (YYYY-MM-DD)
+        format: date
+        in: query
+        name: end_date
+        required: true
+        type: string
+      - default: 10
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance records retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid date format or missing parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get attendance by date range
+      tags:
+      - Attendances
+  /attendances/student-id/{studentId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve attendance records for a specific student
+      parameters:
+      - description: Student ID
+        in: path
+        name: studentId
+        required: true
+        type: string
+      - default: 10
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance records retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Student ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get attendance by student
+      tags:
+      - Attendances
+  /classes:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of all classes
+      parameters:
+      - default: 10
+        description: Number of classes to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of classes to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of classes retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all classes
+      tags:
+      - Classes
+    post:
+      consumes:
+      - application/json
+      description: Create a new class in the system
+      parameters:
+      - description: Class data
+        in: body
+        name: class
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Class'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Class created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new class
+      tags:
+      - Classes
+  /classes/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a class from the system
+      parameters:
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Class deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid class ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete class
+      tags:
+      - Classes
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific class by ID
+      parameters:
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Class retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid class ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Class not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get class by ID
+      tags:
+      - Classes
+    put:
+      consumes:
+      - application/json
+      description: Update a class's information
+      parameters:
+      - description: Class ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Class data
+        in: body
+        name: class
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Class'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Class updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update class
+      tags:
+      - Classes
+  /classes/teacher-id/{teacherId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all classes assigned to a specific teacher
+      parameters:
+      - description: Teacher ID
+        in: path
+        name: teacherId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Classes retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Teacher ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get classes by teacher
+      tags:
+      - Classes
+  /students:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of all students
+      parameters:
+      - default: 10
+        description: Number of students to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of students to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of students retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all students
+      tags:
+      - Students
+    post:
+      consumes:
+      - application/json
+      description: Create a new student in the system
+      parameters:
+      - description: Student data
+        in: body
+        name: student
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Student'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Student created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new student
+      tags:
+      - Students
+  /students/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a student from the system
+      parameters:
+      - description: Student database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete student
+      tags:
+      - Students
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific student by their database ID
+      parameters:
+      - description: Student database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get student by ID
+      tags:
+      - Students
+    put:
+      consumes:
+      - application/json
+      description: Update a student's information
+      parameters:
+      - description: Student database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Student data
+        in: body
+        name: student
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Student'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update student
+      tags:
+      - Students
+  /students/class-id/{classId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all students in a specific class
+      parameters:
+      - description: Class ID
+        in: path
+        name: classId
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Students retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid class ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get students by class
+      tags:
+      - Students
+  /students/student-id/{studentId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific student by their student ID
+      parameters:
+      - description: Student ID (not database ID)
+        in: path
+        name: studentId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Student retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Student ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get student by student ID
+      tags:
+      - Students
+  /teachers:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of all teachers
+      parameters:
+      - default: 10
+        description: Number of teachers to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of teachers to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of teachers retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all teachers
+      tags:
+      - Teachers
+    post:
+      consumes:
+      - application/json
+      description: Create a new teacher in the system
+      parameters:
+      - description: Teacher data
+        in: body
+        name: teacher
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Teacher'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Teacher created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new teacher
+      tags:
+      - Teachers
+  /teachers/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete a teacher from the system
+      parameters:
+      - description: Teacher database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Teacher deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid teacher ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete teacher
+      tags:
+      - Teachers
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific teacher by their database ID
+      parameters:
+      - description: Teacher database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Teacher retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid teacher ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get teacher by ID
+      tags:
+      - Teachers
+    put:
+      consumes:
+      - application/json
+      description: Update a teacher's information
+      parameters:
+      - description: Teacher database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Teacher data
+        in: body
+        name: teacher
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Teacher'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Teacher updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update teacher
+      tags:
+      - Teachers
+  /teachers/teacher-id/{teacherId}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific teacher by their teacher ID
+      parameters:
+      - description: Teacher ID (not database ID)
+        in: path
+        name: teacherId
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Teacher retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Teacher ID is required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get teacher by teacher ID
+      tags:
+      - Teachers
+swagger: "2.0"

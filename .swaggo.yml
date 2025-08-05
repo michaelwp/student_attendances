@@ -1,0 +1,27 @@
+# Swaggo configuration file
+dir: ./
+generalInfo:
+  title: Student Attendance API
+  description: A comprehensive API for managing student attendance, classes, teachers, and absence requests
+  version: "1.0.0"
+  host: localhost:8080
+  basePath: /api/v1
+  schemes: [http, https]
+  contact:
+    name: API Support
+    email: support@studentattendance.com
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  securityDefinitions:
+    Bearer:
+      type: apiKey
+      name: Authorization
+      in: header
+output: docs
+mainAPIFile: cmd/student_attendance/main.go
+parseVendor: false
+parseDependency: false
+parseInternal: false
+generatedTime: false
+parseDepth: 100

@@ -1,0 +1,9 @@
+.idea/
+.claude/
+bin/
+node_modules/
+dist/
+.env
+.DS_Store
+CLAUDE.md
+vendor
