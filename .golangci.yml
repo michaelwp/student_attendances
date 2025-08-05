@@ -25,9 +25,9 @@ linters:
     - rowserrcheck
     - sqlclosecheck
     - gosec
-disable:
-  - errcheck
-  -
+  disable:
+    - errcheck
+  
 linters-settings:
   gocyclo:
     min-complexity: 15
