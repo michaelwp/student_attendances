@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
+	"github.com/michaelwp/student_attendance/pkg"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -22,7 +25,11 @@ type studentHandler struct {
 }
 
 // NewStudentHandler creates a new student handler
-func NewStudentHandler(studentRepo repository.StudentRepository, s3Client *s3.Client, s3Config *config.S3Config) StudentHandler {
+func NewStudentHandler(
+	studentRepo repository.StudentRepository,
+	s3Client *s3.Client,
+	s3Config *config.S3Config,
+) StudentHandler {
 	return &studentHandler{
 		studentRepo: studentRepo,
 		s3Client:    s3Client,
@@ -423,4 +430,165 @@ func (h *studentHandler) GetPhoto(c *fiber.Ctx) error {
 		"message":       "Photo URL retrieved successfully",
 		"photoUrl":      signedURL,
 	})
+}
+
+// ResetPassword godoc
+// @Summary Reset student password
+// @Description Reset a student's password
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Param id path int true "Student ID"
+// @Param password body string true "New password"
+// @Success 200 {object} map[string]interface{} "Password reset successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /students/student-id/{studentId}/reset-password [put]
+func (h *studentHandler) ResetPassword(c *fiber.Ctx) error {
+	studentID := c.Params("studentId")
+	if studentID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.student.id.required",
+			"error":         "Student ID is required",
+		})
+	}
+
+	// Check if a student exists
+	exist, err := h.studentRepo.IsStudentExist(c.Context(), studentID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.student.check.failed",
+			"error":         "Failed to check student existence",
+		})
+	}
+
+	if !exist {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate.key": "error.student.not.found",
+			"error":         "Student not found",
+		})
+	}
+
+	password, err := pkg.GeneratePassword(12)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.generation.failed",
+			"error":         "Failed to generate password",
+		})
+	}
+
+	err = h.updateCurrentPassword(c.Context(), studentID, password)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.password.reset",
+		"message":       "Password reset successfully",
+		"newPassword":   password,
+	})
+}
+
+// UpdatePassword godoc
+// @Summary Update student password
+// @Description Update a student's password with a new one
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Param studentId path string true "Student ID"
+// @Param request body map[string]string true "Password update request"
+// @Success 200 {object} map[string]interface{} "Password updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 404 {object} map[string]interface{} "Student not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /students/student-id/{studentId}/update-password [put]
+func (h *studentHandler) UpdatePassword(c *fiber.Ctx) error {
+	studentID := c.Params("studentId")
+	if studentID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.student.id.required",
+			"error":         "Student ID is required",
+		})
+	}
+
+	var request struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.request.body",
+			"error":         "Invalid request body",
+		})
+	}
+
+	if request.NewPassword == "" || request.OldPassword == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.password.required",
+			"error":         "Password is required",
+		})
+	}
+
+	exist, err := h.studentRepo.IsStudentExist(c.Context(), studentID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.student.check.failed",
+			"error":         "Failed to check student existence",
+		})
+	}
+
+	if !exist {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate.key": "error.student.not.found",
+			"error":         "Student not found",
+		})
+	}
+
+	storedPassword, err := h.studentRepo.GetPasswordByStudentID(c.Context(), studentID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.retrieval.failed",
+			"error":         "Failed to retrieve stored password",
+		})
+	}
+
+	if err := pkg.ComparePasswords(storedPassword, request.OldPassword); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.old.password",
+			"error":         "Invalid old password",
+		})
+	}
+
+	err = h.updateCurrentPassword(c.Context(), studentID, request.NewPassword)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.password.updated",
+		"message":       "Password updated successfully",
+	})
+}
+
+func (h *studentHandler) updateCurrentPassword(ctx context.Context, studentID string, password string) error {
+	round, _ := strconv.Atoi(os.Getenv("SALT"))
+	hashPassword, err := pkg.HashPassword(password, round)
+	if err != nil {
+		log.Println("error on hash password:", err)
+		return err
+	}
+
+	if err := h.studentRepo.UpdatePassword(ctx, studentID, hashPassword); err != nil {
+		log.Println("error on update password:", err)
+		return err
+	}
+
+	return nil
 }

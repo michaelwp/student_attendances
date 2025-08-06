@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
+	"github.com/redis/go-redis/v9"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
@@ -14,7 +15,14 @@ import (
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
 
-func SetupRoutes(app *fiber.App, postgresClient *sql.DB, s3Client *s3.Client, s3Config *config.S3Config) {
+func SetupRoutes(
+	app *fiber.App,
+	postgresClient *sql.DB,
+	s3Client *s3.Client,
+	s3Config *config.S3Config,
+	redisClient *redis.Client,
+) {
+
 	// Middleware
 	app.Use(logger.New())
 	app.Use(cors.New())
@@ -25,6 +33,7 @@ func SetupRoutes(app *fiber.App, postgresClient *sql.DB, s3Client *s3.Client, s3
 		Repositories: repos,
 		S3Client:     s3Client,
 		S3Config:     s3Config,
+		RedisClient:  redisClient,
 	})
 
 	// Swagger documentation
@@ -57,6 +66,8 @@ func SetupRoutes(app *fiber.App, postgresClient *sql.DB, s3Client *s3.Client, s3
 	teachers.Delete("/:id", h.Teacher.Delete)
 	teachers.Put("/:id/photo", h.Teacher.UploadPhoto)
 	teachers.Get("/:id/photo", h.Teacher.GetPhoto)
+	teachers.Put("/teacher-id/:teacherId/reset-password", h.Student.ResetPassword)
+	teachers.Put("/teacher-id/:teacherId/password", h.Student.UpdatePassword)
 
 	// Class routes
 	classes := api.Group("/classes")
@@ -78,6 +89,8 @@ func SetupRoutes(app *fiber.App, postgresClient *sql.DB, s3Client *s3.Client, s3
 	students.Delete("/:id", h.Student.Delete)
 	students.Put("/:id/photo", h.Student.UploadPhoto)
 	students.Get("/:id/photo", h.Student.GetPhoto)
+	students.Put("/student-id/:studentId/reset-password", h.Student.ResetPassword)
+	students.Put("/student-id/:studentId/password", h.Student.UpdatePassword)
 
 	// Attendance routes
 	attendances := api.Group("/attendances")
