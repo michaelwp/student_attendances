@@ -45,6 +45,13 @@ func main() {
 		log.Fatalf("Error connecting to postgres database: %v", err)
 	}
 
+	// connect to AWS S3
+	s3Config := config.NewS3Config()
+	s3Client, err := s3Config.NewS3Client()
+	if err != nil {
+		log.Fatalf("Error connecting to AWS S3: %v", err)
+	}
+
 	app := fiber.New(fiber.Config{
 		DisableStartupMessage: true,
 		EnablePrintRoutes:     true,
@@ -55,13 +62,14 @@ func main() {
 				log.Printf("[ERROR] %v\n", err)
 			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"message": "Internal Server Error",
+				"translate.key": "internal_server_error",
+				"error":         "Internal Server Error",
 			})
 		},
 	})
 
 	// Setup routes
-	api.SetupRoutes(app, postgresClient)
+	api.SetupRoutes(app, postgresClient, s3Client, s3Config)
 
 	port := os.Getenv("PORT")
 

@@ -9,6 +9,7 @@ A comprehensive REST API for managing student attendance, classes, teachers, and
 - **Student Management**: Student enrollment with class assignments
 - **Attendance Tracking**: Record and track student attendance with multiple status types
 - **Absence Requests**: Students can request absences with approval workflow
+- **Photo Upload**: Upload and manage profile photos for teachers and students with AWS S3 integration
 - **RESTful API**: Clean, well-documented REST endpoints
 - **Database Migrations**: Automated database schema management
 - **Comprehensive Documentation**: Full Swagger/OpenAPI specification
@@ -35,6 +36,7 @@ The application follows clean architecture principles with clear separation of c
 
 - Go 1.24.5 or higher
 - PostgreSQL 12 or higher
+- AWS S3 bucket (for photo storage)
 - Make (optional, for using Makefile commands)
 
 ## Installation & Setup
@@ -74,6 +76,12 @@ The application follows clean architecture principles with clear separation of c
    MAX_CONNECTIONS=10
    MAX_IDLE_CONNECTIONS=5
    MAX_LIFETIME_CONNECTIONS=30
+   
+   # AWS S3 configuration (for photo uploads)
+   AWS_S3_REGION=us-east-1
+   AWS_ACCESS_KEY_ID=your-access-key-id
+   AWS_SECRET_ACCESS_KEY=your-secret-access-key
+   AWS_S3_BUCKET=your-bucket-name
    
    # JWT and encryption (for future authentication)
    JWT_SECRET=your-secret-key
@@ -128,6 +136,8 @@ The application follows clean architecture principles with clear separation of c
 - `GET /api/v1/teachers/teacher-id/{teacherId}` - Get teacher by teacher ID
 - `PUT /api/v1/teachers/{id}` - Update teacher
 - `DELETE /api/v1/teachers/{id}` - Delete teacher
+- `PUT /api/v1/teachers/{id}/photo` - Upload teacher profile photo
+- `GET /api/v1/teachers/{id}/photo` - Get teacher profile photo (signed URL)
 
 ### Classes
 - `POST /api/v1/classes` - Create a new class
@@ -145,6 +155,8 @@ The application follows clean architecture principles with clear separation of c
 - `GET /api/v1/students/class-id/{classId}` - Get students by class
 - `PUT /api/v1/students/{id}` - Update student
 - `DELETE /api/v1/students/{id}` - Delete student
+- `PUT /api/v1/students/{id}/photo` - Upload student profile photo
+- `GET /api/v1/students/{id}/photo` - Get student profile photo (signed URL)
 
 ### Attendances
 - `POST /api/v1/attendances` - Create attendance record
@@ -398,6 +410,28 @@ curl -X PATCH http://localhost:8080/api/v1/absent-requests/1/status \
   }'
 ```
 
+#### Upload Teacher Photo
+```bash
+curl -X PUT http://localhost:8080/api/v1/teachers/1/photo \
+  -F "photo=@/path/to/teacher-photo.jpg"
+```
+
+#### Get Teacher Photo
+```bash
+curl -X GET http://localhost:8080/api/v1/teachers/1/photo
+```
+
+#### Upload Student Photo
+```bash
+curl -X PUT http://localhost:8080/api/v1/students/1/photo \
+  -F "photo=@/path/to/student-photo.jpg"
+```
+
+#### Get Student Photo
+```bash
+curl -X GET http://localhost:8080/api/v1/students/1/photo
+```
+
 ## Database Schema
 
 The application uses PostgreSQL with the following main tables:
@@ -414,6 +448,91 @@ All tables include:
 - Proper foreign key relationships
 - Check constraints for status fields
 
+## Photo Management
+
+The API supports profile photo uploads for both teachers and students with AWS S3 integration:
+
+### Features
+- **File Upload**: Multipart form-data upload support
+- **S3 Storage**: Photos are stored securely in AWS S3
+- **Signed URLs**: Secure photo access with time-limited signed URLs
+- **Format Support**: Common image formats (JPEG, PNG, GIF, etc.)
+- **Automatic Path Updates**: Database records are updated with S3 keys
+- **Photo Retrieval**: Get secure photo URLs with expiration times
+- **Error Handling**: Comprehensive validation and error responses
+
+### Requirements
+- AWS S3 bucket configured with proper permissions
+- Environment variables for AWS credentials set up
+- Maximum file size limits enforced by the server
+
+### API Endpoints
+- `PUT /api/v1/teachers/{id}/photo` - Upload teacher profile photo
+- `GET /api/v1/teachers/{id}/photo` - Get teacher profile photo (signed URL)
+- `PUT /api/v1/students/{id}/photo` - Upload student profile photo
+- `GET /api/v1/students/{id}/photo` - Get student profile photo (signed URL)
+
+### Usage Examples
+```bash
+# Upload teacher photo
+curl -X PUT http://localhost:8080/api/v1/teachers/1/photo \
+  -F "photo=@teacher-photo.jpg"
+
+# Get teacher photo (signed URL)
+curl -X GET http://localhost:8080/api/v1/teachers/1/photo
+
+# Upload student photo  
+curl -X PUT http://localhost:8080/api/v1/students/1/photo \
+  -F "photo=@student-photo.jpg"
+
+# Get student photo (signed URL)
+curl -X GET http://localhost:8080/api/v1/students/1/photo
+```
+
+### Upload Response Format
+```json
+{
+  "translate.key": "success.photo_uploaded",
+  "message": "Photo uploaded successfully",
+  "path": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg"
+}
+```
+
+### Get Photo Response Format
+```json
+{
+  "translate.key": "success.photo_url_retrieved",
+  "message": "Photo URL retrieved successfully",
+  "url": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg?X-Amz-Algorithm=..."
+}
+```
+
+**Note**: The GET photo endpoint returns a signed URL that expires after a specified time (15 minutes for students, 1 hour for teachers) for security purposes.
+
+### Technical Implementation
+The photo management system uses several new repository methods:
+
+#### Repository Methods
+- `UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error` - Updates the photo path in the database
+- `GetPhotoPath(ctx context.Context, id uint) (string, error)` - Retrieves the photo path from the database
+
+#### S3 Configuration Methods
+- `UploadFile(client *s3.Client, key string, body []byte) error` - Uploads file to S3
+- `GetObjectURL(key string) string` - Gets public S3 object URL
+- `GetSignedURL(client *s3.Client, key string, expires time.Duration) (string, error)` - Generates presigned URLs
+
+#### File Storage Structure
+Photos are organized in S3 with the following structure:
+```
+photos/
+├── teachers/
+│   └── {teacher_id}/
+│       └── teacher_{id}_{timestamp}.{extension}
+└── students/
+    └── {student_id}/
+        └── student_{id}_{timestamp}.{extension}
+```
+
 ## Security Features
 
 - Password fields are automatically excluded from JSON responses
@@ -421,6 +540,7 @@ All tables include:
 - SQL injection prevention using parameterized queries
 - CORS support for cross-origin requests
 - Request logging middleware
+- Secure file upload with AWS S3 integration
 
 ## Error Handling
 
