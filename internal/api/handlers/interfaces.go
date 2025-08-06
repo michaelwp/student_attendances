@@ -75,6 +75,11 @@ type AdminHandler interface {
 	SetActiveStatus(c *fiber.Ctx) error
 }
 
+type AuthHandler interface {
+	Login(c *fiber.Ctx) error
+	Logout(c *fiber.Ctx) error
+}
+
 // Handlers aggregates all handler interfaces
 type Handlers struct {
 	Teacher       TeacherHandler
@@ -83,4 +88,5 @@ type Handlers struct {
 	Attendance    AttendanceHandler
 	AbsentRequest AbsentRequestHandler
 	Admin         AdminHandler
+	Auth          AuthHandler
 }

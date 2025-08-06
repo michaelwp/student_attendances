@@ -23,5 +23,6 @@ func NewHandlers(dep *HandlerDependencies) *Handlers {
 		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance),
 		AbsentRequest: NewAbsentRequestHandler(dep.Repositories.AbsentRequest),
 		Admin:         NewAdminHandler(dep.Repositories.Admin),
+		Auth:          NewAuthHandler(dep.Repositories.Admin, dep.Repositories.Teacher, dep.Repositories.Student, dep.RedisClient),
 	}
 }
