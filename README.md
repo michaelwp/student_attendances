@@ -346,7 +346,7 @@ The API implements role-based access control with three user types:
 #### Login Response
 ```json
 {
-  "translate.key": "success.login_successful",
+  "translate_key": "success.login_successful",
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user_type": "admin",
@@ -733,7 +733,7 @@ curl -X GET http://localhost:8080/api/v1/students/1/photo
 ### Upload Response Format
 ```json
 {
-  "translate.key": "success.photo_uploaded",
+  "translate_key": "success.photo_uploaded",
   "message": "Photo uploaded successfully",
   "path": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg"
 }
@@ -742,7 +742,7 @@ curl -X GET http://localhost:8080/api/v1/students/1/photo
 ### Get Photo Response Format
 ```json
 {
-  "translate.key": "success.photo_url_retrieved",
+  "translate_key": "success.photo_url_retrieved",
   "message": "Photo URL retrieved successfully",
   "url": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg?X-Amz-Algorithm=..."
 }
@@ -828,7 +828,7 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
 #### Reset Password Response
 ```json
 {
-  "translate.key": "success.password.reset",
+  "translate_key": "success.password.reset",
   "message": "Password reset successfully",
   "newPassword": "GeneratedSecurePassword123"
 }
@@ -837,7 +837,7 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
 #### Update Password Response
 ```json
 {
-  "translate.key": "success.password.updated",
+  "translate_key": "success.password.updated",
   "message": "Password updated successfully"
 }
 ```
@@ -900,7 +900,7 @@ curl -X PUT http://localhost:8080/api/v1/admins/1/status \
 ### Response Format
 ```json
 {
-  "translate.key": "success.admin_created",
+  "translate_key": "success.admin_created",
   "message": "Admin created successfully"
 }
 ```
@@ -1037,7 +1037,7 @@ The authentication middleware provides:
 #### Missing Authentication
 ```json
 {
-  "translate.key": "error.token_required",
+  "translate_key": "error.token_required",
   "error": "Authorization token is required"
 }
 ```
@@ -1045,7 +1045,7 @@ The authentication middleware provides:
 #### Invalid Token Format
 ```json
 {
-  "translate.key": "error.invalid_token_format", 
+  "translate_key": "error.invalid_token_format", 
   "error": "Token must be in format: Bearer <token>"
 }
 ```
@@ -1053,7 +1053,7 @@ The authentication middleware provides:
 #### Expired Token
 ```json
 {
-  "translate.key": "error.token_expired",
+  "translate_key": "error.token_expired",
   "error": "Token has expired"
 }
 ```
@@ -1061,7 +1061,7 @@ The authentication middleware provides:
 #### Insufficient Permissions
 ```json
 {
-  "translate.key": "error.insufficient_permissions",
+  "translate_key": "error.insufficient_permissions",
   "error": "Insufficient permissions for this operation"
 }
 ```
