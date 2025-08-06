@@ -76,6 +76,22 @@ type AbsentRequestRepository interface {
 	Delete(ctx context.Context, id uint) error
 }
 
+// AdminRepository defines the interface for admin operations
+type AdminRepository interface {
+	Create(ctx context.Context, admin *models.Admin) error
+	GetByID(ctx context.Context, id uint) (*models.Admin, error)
+	GetByEmail(ctx context.Context, email string) (*models.Admin, error)
+	GetAll(ctx context.Context, limit, offset int) ([]*models.Admin, error)
+	Update(ctx context.Context, admin *models.Admin) error
+	Delete(ctx context.Context, id uint) error
+	UpdatePassword(ctx context.Context, email string, password string) error
+	UpdateLastLogin(ctx context.Context, id uint, lastLogin time.Time) error
+	SetActiveStatus(ctx context.Context, id uint, isActive bool) error
+	GetTotalAdmins(ctx context.Context) (int, error)
+	IsAdminExist(ctx context.Context, email string) (bool, error)
+	GetPasswordByEmail(ctx context.Context, email string) (string, error)
+}
+
 // Repositories aggregates all repository interfaces
 type Repositories struct {
 	Teacher       TeacherRepository
@@ -83,4 +99,5 @@ type Repositories struct {
 	Student       StudentRepository
 	Attendance    AttendanceRepository
 	AbsentRequest AbsentRequestRepository
+	Admin         AdminRepository
 }

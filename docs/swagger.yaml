@@ -28,6 +28,21 @@ definitions:
     - AbsentRequestStatusPending
     - AbsentRequestStatusApproved
     - AbsentRequestStatusRejected
+  github_com_michaelwp_student_attendance_internal_models.Admin:
+    properties:
+      created_at:
+        type: string
+      email:
+        type: string
+      id:
+        type: integer
+      is_active:
+        type: boolean
+      last_login:
+        type: string
+      updated_at:
+        type: string
+    type: object
   github_com_michaelwp_student_attendance_internal_models.Attendance:
     properties:
       class_id:
@@ -370,6 +385,282 @@ paths:
       summary: Get absent requests by student
       tags:
       - Absent Requests
+  /admins:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a paginated list of all admins
+      parameters:
+      - default: 10
+        description: Number of admins to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of admins to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: List of admins retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all admins
+      tags:
+      - Admins
+    post:
+      consumes:
+      - application/json
+      description: Create a new admin in the system
+      parameters:
+      - description: Admin data
+        in: body
+        name: admin
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Admin'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Admin created successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Create a new admin
+      tags:
+      - Admins
+  /admins/{id}:
+    delete:
+      consumes:
+      - application/json
+      description: Delete an admin from the system
+      parameters:
+      - description: Admin database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin deleted successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid admin ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Delete admin
+      tags:
+      - Admins
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific admin by their database ID
+      parameters:
+      - description: Admin database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid admin ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Admin not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get admin by ID
+      tags:
+      - Admins
+    put:
+      consumes:
+      - application/json
+      description: Update an admin's information
+      parameters:
+      - description: Admin database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Admin data
+        in: body
+        name: admin
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.Admin'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update admin
+      tags:
+      - Admins
+  /admins/{id}/password:
+    put:
+      consumes:
+      - application/json
+      description: Update an admin's password
+      parameters:
+      - description: Admin database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update admin password
+      tags:
+      - Admins
+  /admins/{id}/status:
+    put:
+      consumes:
+      - application/json
+      description: Set an admin's active status (activate/deactivate)
+      parameters:
+      - description: Admin database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Active status request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: boolean
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin status updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Set admin active status
+      tags:
+      - Admins
+  /admins/email/{email}:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve a specific admin by their email
+      parameters:
+      - description: Admin email
+        in: path
+        name: email
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Admin retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Email is required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Admin not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get admin by email
+      tags:
+      - Admins
   /attendances:
     post:
       consumes:
