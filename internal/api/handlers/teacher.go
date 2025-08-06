@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"context"
 	"fmt"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
+	"github.com/michaelwp/student_attendance/pkg"
 	"io"
 	"log"
+	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -379,4 +382,165 @@ func (h *teacherHandler) GetPhoto(c *fiber.Ctx) error {
 		"message":       "Photo URL retrieved successfully",
 		"url":           signedURL,
 	})
+}
+
+// ResetPassword godoc
+// @Summary Reset teacher password
+// @Description Reset a teacher's password
+// @Tags Teachers
+// @Accept json
+// @Produce json
+// @Param id path int true "Teacher ID"
+// @Param password body string true "New password"
+// @Success 200 {object} map[string]interface{} "Password reset successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /teachers/teacher-id/{teacherId}/reset-password [put]
+func (h *teacherHandler) ResetPassword(c *fiber.Ctx) error {
+	teacherID := c.Params("teacherId")
+	if teacherID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.teacher.id.required",
+			"error":         "Teacher ID is required",
+		})
+	}
+
+	// Check if a teacher exists
+	exist, err := h.teacherRepo.IsTeacherExist(c.Context(), teacherID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.teacher.check.failed",
+			"error":         "Failed to check teacher existence",
+		})
+	}
+
+	if !exist {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate.key": "error.teacher.not.found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	password, err := pkg.GeneratePassword(12)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.generation.failed",
+			"error":         "Failed to generate password",
+		})
+	}
+
+	err = h.updateCurrentPassword(c.Context(), teacherID, password)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.password.reset",
+		"message":       "Password reset successfully",
+		"newPassword":   password,
+	})
+}
+
+// UpdatePassword godoc
+// @Summary Update teacher password
+// @Description Update a teacher's password with a new one
+// @Tags Teachers
+// @Accept json
+// @Produce json
+// @Param teacherId path string true "Teacher ID"
+// @Param request body map[string]string true "Password update request"
+// @Success 200 {object} map[string]interface{} "Password updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 404 {object} map[string]interface{} "Teacher not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /teachers/teacher-id/{teacherId}/update-password [put]
+func (h *teacherHandler) UpdatePassword(c *fiber.Ctx) error {
+	teacherID := c.Params("teacherId")
+	if teacherID == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.teacher.id.required",
+			"error":         "Teacher ID is required",
+		})
+	}
+
+	var request struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.request.body",
+			"error":         "Invalid request body",
+		})
+	}
+
+	if request.NewPassword == "" || request.OldPassword == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.password.required",
+			"error":         "Password is required",
+		})
+	}
+
+	exist, err := h.teacherRepo.IsTeacherExist(c.Context(), teacherID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.teacher.check.failed",
+			"error":         "Failed to check teacher existence",
+		})
+	}
+
+	if !exist {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate.key": "error.teacher.not.found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	storedPassword, err := h.teacherRepo.GetPasswordByTeacherID(c.Context(), teacherID)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.retrieval.failed",
+			"error":         "Failed to retrieve stored password",
+		})
+	}
+
+	if err := pkg.ComparePasswords(storedPassword, request.OldPassword); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.old.password",
+			"error":         "Invalid old password",
+		})
+	}
+
+	err = h.updateCurrentPassword(c.Context(), teacherID, request.NewPassword)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.password.updated",
+		"message":       "Password updated successfully",
+	})
+}
+
+func (h *teacherHandler) updateCurrentPassword(ctx context.Context, teacherID string, password string) error {
+	round, _ := strconv.Atoi(os.Getenv("SALT"))
+	hashPassword, err := pkg.HashPassword(password, round)
+	if err != nil {
+		log.Println("error on hash password:", err)
+		return err
+	}
+
+	if err := h.teacherRepo.UpdatePassword(ctx, teacherID, hashPassword); err != nil {
+		log.Println("error on update password:", err)
+		return err
+	}
+
+	return nil
 }
