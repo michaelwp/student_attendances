@@ -6,12 +6,19 @@ import (
 
 // NewRepositories creates a new instance of all repositories
 func NewRepositories(db *sql.DB) *Repositories {
+	teacherRepo := NewTeacherRepository(db)
+	classRepo := NewClassRepository(db)
+	studentRepo := NewStudentRepository(db)
+	attendanceRepo := NewAttendanceRepository(db)
+	absentRequestRepo := NewAbsentRequestRepository(db)
+	adminRepo := NewAdminRepositoryWithDeps(db, teacherRepo, studentRepo, classRepo, attendanceRepo)
+	
 	return &Repositories{
-		Teacher:       NewTeacherRepository(db),
-		Class:         NewClassRepository(db),
-		Student:       NewStudentRepository(db),
-		Attendance:    NewAttendanceRepository(db),
-		AbsentRequest: NewAbsentRequestRepository(db),
-		Admin:         NewAdminRepository(db),
+		Teacher:       teacherRepo,
+		Class:         classRepo,
+		Student:       studentRepo,
+		Attendance:    attendanceRepo,
+		AbsentRequest: absentRequestRepo,
+		Admin:         adminRepo,
 	}
 }

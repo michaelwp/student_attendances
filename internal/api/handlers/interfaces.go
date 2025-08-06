@@ -14,6 +14,7 @@ type TeacherHandler interface {
 	GetPhoto(c *fiber.Ctx) error
 	ResetPassword(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
+	GetStats(c *fiber.Ctx) error
 }
 
 // ClassHandler defines the interface for class API operations
@@ -39,6 +40,7 @@ type StudentHandler interface {
 	GetPhoto(c *fiber.Ctx) error
 	ResetPassword(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
+	GetStats(c *fiber.Ctx) error
 }
 
 // AttendanceHandler defines the interface for attendance API operations
@@ -73,6 +75,7 @@ type AdminHandler interface {
 	Delete(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
 	SetActiveStatus(c *fiber.Ctx) error
+	GetStat(c *fiber.Ctx) error
 }
 
 type AuthHandler interface {

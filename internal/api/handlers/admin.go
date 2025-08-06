@@ -5,6 +5,7 @@ import (
 	"github.com/michaelwp/student_attendance/internal/models"
 	"github.com/michaelwp/student_attendance/internal/repository"
 	"github.com/michaelwp/student_attendance/pkg"
+	"log"
 	"os"
 	"strconv"
 )
@@ -35,14 +36,14 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 	var admin models.Admin
 	if err := c.BodyParser(&admin); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_request_body",
+			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
 		})
 	}
 
 	if admin.Email == "" || admin.Password == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.email_and_password_required",
+			"translate_key": "error.email_and_password_required",
 			"error":         "Email and password are required",
 		})
 	}
@@ -52,7 +53,7 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 	hashedPassword, err := pkg.HashPassword(admin.Password, round)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.password_hashing_failed",
+			"translate_key": "error.password_hashing_failed",
 			"error":         "Failed to hash password",
 		})
 	}
@@ -60,13 +61,13 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 
 	if err := h.adminRepo.Create(c.Context(), &admin); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_create_admin",
+			"translate_key": "error.failed_to_create_admin",
 			"error":         "Failed to create admin",
 		})
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"translate.key": "success.admin_created",
+		"translate_key": "success.admin_created",
 		"message":       "Admin created successfully",
 	})
 }
@@ -83,26 +84,36 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{} "Admin not found"
 // @Router /admins/{id} [get]
 func (h *adminHandler) GetByID(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
+	adminID := c.Locals("userID")
+	if adminID == nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_admin_id",
+			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID",
 		})
 	}
 
-	admin, err := h.adminRepo.GetByID(c.Context(), uint(id))
+	// TODO: Log the adminID for debugging purposes
+	log.Println("adminID:", adminID)
+
+	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID format",
+		})
+	}
+
+	admin, err := h.adminRepo.GetByID(c.Context(), uint(adminIDUint))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"translate.key": "error.admin_not_found",
+			"translate_key": "error.admin_not_found",
 			"error":         "Admin not found",
 		})
 	}
 
 	admin.Password = ""
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admin_retrieved",
+		"translate_key": "success.admin_retrieved",
 		"message":       "Admin retrieved successfully",
 		"data":          admin,
 	})
@@ -123,7 +134,7 @@ func (h *adminHandler) GetByEmail(c *fiber.Ctx) error {
 	email := c.Params("email")
 	if email == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.email_required",
+			"translate_key": "error.email_required",
 			"error":         "Email is required",
 		})
 	}
@@ -131,14 +142,14 @@ func (h *adminHandler) GetByEmail(c *fiber.Ctx) error {
 	admin, err := h.adminRepo.GetByEmail(c.Context(), email)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"translate.key": "error.admin_not_found",
+			"translate_key": "error.admin_not_found",
 			"error":         "Admin not found",
 		})
 	}
 
 	admin.Password = ""
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admin_retrieved",
+		"translate_key": "success.admin_retrieved",
 		"message":       "Admin retrieved successfully",
 		"data":          admin,
 	})
@@ -166,7 +177,7 @@ func (h *adminHandler) GetAll(c *fiber.Ctx) error {
 	admins, err := h.adminRepo.GetAll(c.Context(), limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_get_admins",
+			"translate_key": "error.failed_to_get_admins",
 			"error":         "Failed to get admins",
 		})
 	}
@@ -178,13 +189,13 @@ func (h *adminHandler) GetAll(c *fiber.Ctx) error {
 	totalAdmins, err := h.adminRepo.GetTotalAdmins(c.Context())
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_get_total_admins",
+			"translate_key": "error.failed_to_get_total_admins",
 			"error":         "Failed to get total admins",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admins_retrieved",
+		"translate_key": "success.admins_retrieved",
 		"message":       "Admins retrieved successfully",
 		"data":          admins,
 		"total":         totalAdmins,
@@ -210,15 +221,15 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID 2",
 		})
 	}
 
 	var admin models.Admin
 	if err := c.BodyParser(&admin); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_request_body",
+			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
 		})
 	}
@@ -226,13 +237,13 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 	admin.ID = uint(id)
 	if err := h.adminRepo.Update(c.Context(), &admin); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_update_admin",
+			"translate_key": "error.failed_to_update_admin",
 			"error":         "Failed to update admin",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admin_updated",
+		"translate_key": "success.admin_updated",
 		"message":       "Admin updated successfully",
 		"data":          admin,
 	})
@@ -254,20 +265,20 @@ func (h *adminHandler) Delete(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID 3",
 		})
 	}
 
 	if err := h.adminRepo.Delete(c.Context(), uint(id)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_delete_admin",
+			"translate_key": "error.failed_to_delete_admin",
 			"error":         "Failed to delete admin",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admin_deleted",
+		"translate_key": "success.admin_deleted",
 		"message":       "Admin deleted successfully",
 	})
 }
@@ -288,7 +299,7 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	email := c.Params("email")
 	if email == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.email_required",
+			"translate_key": "error.email_required",
 			"error":         "Email is required",
 		})
 	}
@@ -300,14 +311,14 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_request_body",
+			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
 		})
 	}
 
 	if request.NewPassword == "" || request.OldPassword == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.password.required",
+			"translate_key": "error.password.required",
 			"error":         "Password is required",
 		})
 	}
@@ -315,14 +326,14 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	exist, err := h.adminRepo.IsAdminExist(c.Context(), email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.admin.check.failed",
+			"translate_key": "error.admin.check.failed",
 			"error":         "Failed to check admin existence",
 		})
 	}
 
 	if !exist {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"translate.key": "error.admin.not.found",
+			"translate_key": "error.admin.not.found",
 			"error":         "Admin not found",
 		})
 	}
@@ -330,14 +341,14 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	storedPassword, err := h.adminRepo.GetPasswordByEmail(c.Context(), email)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.password.retrieval.failed",
+			"translate_key": "error.password.retrieval.failed",
 			"error":         "Failed to retrieve stored password",
 		})
 	}
 
 	if err := pkg.ComparePasswords(storedPassword, request.OldPassword); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid.old.password",
+			"translate_key": "error.invalid.old.password",
 			"error":         "Invalid old password",
 		})
 	}
@@ -347,20 +358,20 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	hashedPassword, err := pkg.HashPassword(request.NewPassword, round)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.password_hashing_failed",
+			"translate_key": "error.password_hashing_failed",
 			"error":         "Failed to hash password",
 		})
 	}
 
 	if err := h.adminRepo.UpdatePassword(c.Context(), email, hashedPassword); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_update_password",
+			"translate_key": "error.failed_to_update_password",
 			"error":         "Failed to update password",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.password_updated",
+		"translate_key": "success.password_updated",
 		"message":       "Password updated successfully",
 	})
 }
@@ -382,8 +393,8 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID 4",
 		})
 	}
 
@@ -393,14 +404,14 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 
 	if err := c.BodyParser(&request); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_request_body",
+			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
 		})
 	}
 
 	if err := h.adminRepo.SetActiveStatus(c.Context(), uint(id), request.IsActive); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.failed_to_update_status",
+			"translate_key": "error.failed_to_update_status",
 			"error":         "Failed to update admin status",
 		})
 	}
@@ -411,7 +422,32 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.admin_status_updated",
+		"translate_key": "success.admin_status_updated",
 		"message":       "Admin " + status + " successfully",
+	})
+}
+
+// GetStat godoc
+// @Summary Get system statistics
+// @Description Get comprehensive dashboard statistics including admins, teachers, students, classes and today's attendance
+// @Tags Admins
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Statistics retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /admins/stats [get]
+func (h *adminHandler) GetStat(c *fiber.Ctx) error {
+	stats, err := h.adminRepo.GetDashboardStats(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_stats",
+			"error":         "Failed to get statistics",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.stats_retrieved",
+		"message":       "Statistics retrieved successfully",
+		"data":          stats,
 	})
 }

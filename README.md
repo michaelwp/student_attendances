@@ -1,42 +1,76 @@
-# Student Attendance API
+# Student Attendance System
 
-A comprehensive REST API for managing student attendance, classes, teachers, and absence requests built with Go, Fiber web framework, and PostgreSQL.
+A comprehensive full-stack student attendance management system with a REST API backend built with Go/Fiber and a modern React/TypeScript frontend. Features include teacher management, student enrollment, class organization, attendance tracking, and a comprehensive admin dashboard with real-time statistics.
 
 ## Features
 
+### Backend API Features
+- **JWT Authentication**: Secure multi-user authentication (Admin, Teacher, Student) with Redis caching
+- **Role-Based Access Control**: Different permission levels for admins, teachers, and students
 - **Teacher Management**: CRUD operations for teacher accounts with authentication
 - **Class Management**: Create and manage classes with homeroom teacher assignments
 - **Student Management**: Student enrollment with class assignments
 - **Attendance Tracking**: Record and track student attendance with multiple status types
 - **Absence Requests**: Students can request absences with approval workflow
 - **Photo Upload**: Upload and manage profile photos for teachers and students with AWS S3 integration
+- **Admin Dashboard Statistics**: Comprehensive real-time statistics for all entities
+- **Password Management**: Secure password reset and update functionality
 - **RESTful API**: Clean, well-documented REST endpoints
 - **Database Migrations**: Automated database schema management
 - **Comprehensive Documentation**: Full Swagger/OpenAPI specification
+
+### Frontend Web Application Features
+- **Modern React/TypeScript**: Built with React 19 and TypeScript for type safety
+- **Multi-language Support**: Full internationalization (i18n) with English and Indonesian
+- **Dark Mode**: System preference detection with manual toggle
+- **Responsive Design**: Mobile-first responsive design with Tailwind CSS
+- **Admin Dashboard**: Comprehensive statistics dashboard with real-time data
+- **State Management**: Zustand for efficient state management with persistence
+- **Authentication Flow**: Secure login/logout with JWT token management
+- **Professional UI**: Clean, modern interface with accessibility features
+- **Error Handling**: Comprehensive error handling with user-friendly messages
 
 ## Architecture
 
 The application follows clean architecture principles with clear separation of concerns:
 
+### Backend Structure
 ```
    cmd/student_attendance/     # Application entry point
    internal/
-      api/                   # HTTP layer
+      api/
          handlers/          # HTTP handlers with interfaces
-         router.go          # Route definitions
+         middleware/        # JWT authentication, CORS, logging
+         router.go          # Route definitions and middleware setup
       config/                # Configuration management
-      models/                # Data models
+      models/                # Data models and business entities
       repository/            # Data access layer with interfaces
    db/                        # Database migrations and utilities
-   docs/                      # API documentation
-   web/                       # Static files (if needed)
+   docs/                      # API documentation (Swagger/OpenAPI)
+   pkg/                       # Shared utilities (JWT, password hashing)
+```
+
+### Frontend Structure
+```
+   web/
+      src/
+         components/        # Reusable React components (Layout, Forms)
+         pages/            # Page components (Dashboard, Login)
+         stores/           # Zustand state management stores
+         services/         # API service layer with type-safe calls
+         types/            # TypeScript type definitions
+         hooks/            # Custom React hooks (theme, auth)
+         i18n/            # Internationalization setup and translations
+         styles/           # Global styles and Tailwind configuration
 ```
 
 ## Prerequisites
 
-- Go 1.24.5 or higher
+- Go 1.21 or higher
 - PostgreSQL 12 or higher
-- Redis (for session management and caching)
+- Redis (for JWT token caching and session management)
+- Node.js 18 or higher (for web application)
+- npm or yarn (for frontend dependencies)
 - AWS S3 bucket (for photo storage)
 - Make (optional, for using Makefile commands)
 
@@ -346,7 +380,7 @@ The API implements role-based access control with three user types:
 #### Login Response
 ```json
 {
-  "translate.key": "success.login_successful",
+  "translate_key": "success.login_successful",
   "message": "Login successful",
   "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
   "user_type": "admin",
@@ -733,7 +767,7 @@ curl -X GET http://localhost:8080/api/v1/students/1/photo
 ### Upload Response Format
 ```json
 {
-  "translate.key": "success.photo_uploaded",
+  "translate_key": "success.photo_uploaded",
   "message": "Photo uploaded successfully",
   "path": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg"
 }
@@ -742,7 +776,7 @@ curl -X GET http://localhost:8080/api/v1/students/1/photo
 ### Get Photo Response Format
 ```json
 {
-  "translate.key": "success.photo_url_retrieved",
+  "translate_key": "success.photo_url_retrieved",
   "message": "Photo URL retrieved successfully",
   "url": "https://bucket-name.s3.region.amazonaws.com/photos/teachers/1/teacher_1_1704067200.jpg?X-Amz-Algorithm=..."
 }
@@ -828,7 +862,7 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
 #### Reset Password Response
 ```json
 {
-  "translate.key": "success.password.reset",
+  "translate_key": "success.password.reset",
   "message": "Password reset successfully",
   "newPassword": "GeneratedSecurePassword123"
 }
@@ -837,7 +871,7 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
 #### Update Password Response
 ```json
 {
-  "translate.key": "success.password.updated",
+  "translate_key": "success.password.updated",
   "message": "Password updated successfully"
 }
 ```
@@ -900,7 +934,7 @@ curl -X PUT http://localhost:8080/api/v1/admins/1/status \
 ### Response Format
 ```json
 {
-  "translate.key": "success.admin_created",
+  "translate_key": "success.admin_created",
   "message": "Admin created successfully"
 }
 ```
@@ -1037,7 +1071,7 @@ The authentication middleware provides:
 #### Missing Authentication
 ```json
 {
-  "translate.key": "error.token_required",
+  "translate_key": "error.token_required",
   "error": "Authorization token is required"
 }
 ```
@@ -1045,7 +1079,7 @@ The authentication middleware provides:
 #### Invalid Token Format
 ```json
 {
-  "translate.key": "error.invalid_token_format", 
+  "translate_key": "error.invalid_token_format", 
   "error": "Token must be in format: Bearer <token>"
 }
 ```
@@ -1053,7 +1087,7 @@ The authentication middleware provides:
 #### Expired Token
 ```json
 {
-  "translate.key": "error.token_expired",
+  "translate_key": "error.token_expired",
   "error": "Token has expired"
 }
 ```
@@ -1061,7 +1095,7 @@ The authentication middleware provides:
 #### Insufficient Permissions
 ```json
 {
-  "translate.key": "error.insufficient_permissions",
+  "translate_key": "error.insufficient_permissions",
   "error": "Insufficient permissions for this operation"
 }
 ```
@@ -1107,6 +1141,130 @@ Example:
 ```bash
 GET /api/v1/students?limit=20&offset=40
 ```
+
+## Web Application
+
+The system includes a modern React/TypeScript web application providing a comprehensive admin interface:
+
+### Features
+- **Secure Authentication**: JWT-based login with automatic token management
+- **Admin Dashboard**: Real-time statistics and system overview with comprehensive entity breakdowns
+- **Multi-language Support**: English and Indonesian with automatic language detection
+- **Dark Mode**: System preference detection with manual toggle
+- **Responsive Design**: Mobile-first design that works on all devices
+- **Professional UI**: Clean, modern interface using Tailwind CSS
+- **State Management**: Persistent state management with Zustand
+- **Type Safety**: Full TypeScript support with comprehensive type definitions
+
+### Dashboard Statistics Display
+The admin dashboard provides comprehensive real-time statistics:
+
+- **Entity Overview Cards**: Display total, active, and inactive counts for:
+  - Administrators with color-coded status indicators
+  - Teachers with active/inactive breakdown
+  - Students with enrollment status
+  - Total classes in the system
+
+- **Today's Attendance Summary**: Real-time attendance data showing:
+  - Total attendance records for today
+  - Present students count
+  - Absent students count  
+  - Late arrivals count
+
+- **Quick Actions**: Navigation shortcuts to manage:
+  - Teachers (add, edit, remove)
+  - Students (enrollment, management)
+  - Classes (creation, assignments)
+  - Attendance tracking
+
+### User Interface Features
+- **Navigation**: Sidebar navigation with route highlighting
+- **Theme Toggle**: Dark/light mode with system preference detection
+- **Language Toggle**: Switch between English and Indonesian
+- **Loading States**: Professional loading indicators and error handling
+- **Responsive Grid**: Adaptive layout for different screen sizes
+- **Accessibility**: ARIA labels and keyboard navigation support
+
+### Technical Implementation
+- **React 19**: Latest React with concurrent features
+- **TypeScript**: Full type safety with strict mode
+- **Tailwind CSS**: Utility-first CSS framework with custom design system
+- **i18next**: Internationalization with namespace support
+- **Zustand**: Lightweight state management with persistence
+- **React Hook Form**: Form handling with validation
+- **Custom Hooks**: Reusable hooks for theme and authentication
+
+### Getting Started with Web Application
+
+1. **Install dependencies**
+   ```bash
+   cd web
+   npm install
+   ```
+
+2. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+3. **Build for production**
+   ```bash
+   npm run build
+   ```
+
+4. **Access the application**
+   - Development: http://localhost:5173
+   - Login with admin credentials to access the dashboard
+
+### Environment Configuration
+The web application automatically connects to the API at `http://localhost:8080/api/v1`. Update the API base URL in `web/src/services/api.ts` for different environments.
+
+### Authentication Flow
+1. Users select their account type (Admin, Teacher, Student)
+2. Enter appropriate credentials (email for admin, ID for teacher/student)
+3. System validates credentials and generates JWT token
+4. Token is stored securely and used for subsequent API calls
+5. Dashboard loads with personalized statistics and navigation
+
+## Recent Updates
+
+### Version 2.0 - Full-Stack Implementation ✅
+- ✅ **JWT Authentication**: Complete multi-user authentication system
+- ✅ **Role-Based Access Control**: Admin, teacher, and student permission levels
+- ✅ **React Web Application**: Modern TypeScript frontend with responsive design
+- ✅ **Admin Dashboard**: Comprehensive statistics and management interface
+- ✅ **Multi-language Support**: English and Indonesian internationalization
+- ✅ **Dark Mode**: Theme support with system preference detection
+- ✅ **Comprehensive Statistics**: Real-time dashboard with entity and attendance stats
+- ✅ **Password Management**: Secure password reset and update functionality
+- ✅ **Photo Upload**: AWS S3 integration for profile photo management
+
+### Version 1.0 - API Foundation ✅
+- ✅ **RESTful API**: Complete CRUD operations for all entities
+- ✅ **Database Design**: PostgreSQL with proper relationships and constraints
+- ✅ **Documentation**: Full Swagger/OpenAPI specification
+- ✅ **Clean Architecture**: Separation of concerns with repository pattern
+- ✅ **Attendance Tracking**: Multi-status attendance system
+- ✅ **Absence Requests**: Student absence request workflow
+
+## Roadmap
+
+### Version 3.0 - Enhanced Features (Planned)
+- [ ] **Teacher Management UI**: Full CRUD interface for teacher accounts
+- [ ] **Student Management UI**: Complete student enrollment and management
+- [ ] **Class Management UI**: Class creation and assignment interface
+- [ ] **Attendance Management UI**: Daily attendance tracking interface
+- [ ] **Reports & Analytics**: Advanced reporting with charts and exports
+- [ ] **Email Notifications**: Automated notifications for absence requests
+- [ ] **Bulk Operations**: Mass attendance entry and student operations
+
+### Version 4.0 - Advanced Features (Future)
+- [ ] **Parent/Guardian Portal**: Parent access to student information
+- [ ] **Mobile Application**: Native mobile app for iOS and Android
+- [ ] **Calendar Integration**: Google Calendar and Outlook integration
+- [ ] **Real-time Updates**: WebSocket support for live data updates
+- [ ] **Advanced Security**: Two-factor authentication and audit logging
+- [ ] **API Rate Limiting**: Enhanced security with request throttling
 
 ## Contributing
 

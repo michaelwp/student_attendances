@@ -1,0 +1,106 @@
+{
+  "app": {
+    "title": "Absensi Siswa",
+    "subtitle": "Portal Login Aman"
+  },
+  "login": {
+    "title": "Masuk",
+    "userType": "Jenis Pengguna",
+    "userId": "ID Pengguna",
+    "password": "Kata Sandi",
+    "submit": "Masuk",
+    "signingIn": "Sedang Masuk...",
+    "userTypes": {
+      "admin": "Administrator",
+      "teacher": "Guru",
+      "student": "Siswa"
+    },
+    "placeholders": {
+      "admin": "Masukkan alamat email Anda",
+      "teacher": "Masukkan ID guru Anda",
+      "student": "Masukkan ID siswa Anda",
+      "password": "Masukkan kata sandi Anda"
+    },
+    "validation": {
+      "userTypeRequired": "Silakan pilih jenis pengguna",
+      "userIdRequired": "ID pengguna diperlukan",
+      "passwordRequired": "Kata sandi diperlukan",
+      "passwordMinLength": "Kata sandi harus minimal 6 karakter"
+    }
+  },
+  "common": {
+    "loading": "Memuat...",
+    "error": "Error",
+    "success": "Berhasil",
+    "retry": "Coba Lagi",
+    "close": "Tutup",
+    "language": "Bahasa",
+    "theme": "Tema"
+  },
+  "themes": {
+    "light": "Mode Terang",
+    "dark": "Mode Gelap",
+    "toggle": "Ganti Tema"
+  },
+  "languages": {
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "switch": "Ganti Bahasa"
+  },
+  "errors": {
+    "network_error": "Koneksi jaringan gagal. Silakan periksa koneksi internet Anda.",
+    "invalid_credentials": "Nama pengguna atau kata sandi tidak valid",
+    "authentication_failed": "Autentikasi gagal. Silakan coba lagi.",
+    "token_expired": "Sesi Anda telah berakhir. Silakan login kembali.",
+    "account_deactivated": "Akun Anda telah dinonaktifkan. Silakan hubungi administrator.",
+    "invalid_user_type": "Silakan pilih jenis pengguna yang valid",
+    "server_error": "Error server. Silakan coba lagi nanti.",
+    "unknown": "Terjadi error yang tidak diketahui. Silakan coba lagi."
+  },
+  "success": {
+    "login_successful": "Login berhasil! Mengalihkan...",
+    "logout_successful": "Logout berhasil"
+  },
+  "dashboard": {
+    "welcome": "Selamat datang",
+    "admin": "Administrator",
+    "overview": "Berikut adalah yang terjadi di sekolah Anda hari ini",
+    "stats": {
+      "total_teachers": "Total Guru",
+      "total_students": "Total Siswa",
+      "total_classes": "Total Kelas",
+      "total_admins": "Total Admin"
+    },
+    "today_attendance": "Absensi Hari Ini",
+    "present": "Hadir",
+    "absent": "Tidak Hadir",
+    "late": "Terlambat",
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
+    "quick_actions": "Aksi Cepat",
+    "manage_teachers": "Kelola Guru",
+    "manage_teachers_desc": "Tambah, edit, atau hapus guru",
+    "manage_students": "Kelola Siswa",
+    "manage_students_desc": "Tambah, edit, atau hapus siswa",
+    "manage_classes": "Kelola Kelas",
+    "manage_classes_desc": "Buat dan kelola kelas",
+    "attendance": "Absensi",
+    "attendance_desc": "Lacak dan kelola absensi"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "teachers": "Guru",
+    "students": "Siswa",
+    "classes": "Kelas",
+    "attendance": "Absensi",
+    "admins": "Admin"
+  },
+  "button": {
+    "change_language": "Ganti Bahasa",
+    "toggle_dark_mode": "Beralih Mode Gelap",
+    "logout": "Keluar"
+  },
+  "error": {
+    "failed_to_load": "Gagal memuat data"
+  }
+}

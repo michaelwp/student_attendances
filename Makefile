@@ -30,11 +30,18 @@ swagger: ## Generate Swagger documentation
 	@echo "Swagger documentation generated successfully!"
 
 build: ## Build the application
-	@echo "Building the application..."
+	@make build-be build-web -j || { echo "Build failed"; exit 1; }
+
+build-be: ## Build the application
+	@echo "Building the be application..."
 	@go build -o bin/student_attendance cmd/student_attendance/main.go
 
 run: ## Run the application
 	@echo "Running the application..."
 	@./bin/student_attendance
 
-.PHONY: migration-up migration-down install-hooks ui uninstall-hooks lint lint-fix swagger build run
+build-web: ## Build the web application
+	@echo "Building the web application..."
+	@cd web && npm run build
+
+.PHONY: migration-up migration-down install-hooks ui uninstall-hooks lint lint-fix swagger build run build-be build-web

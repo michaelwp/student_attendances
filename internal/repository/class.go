@@ -178,3 +178,15 @@ func (r *classRepository) Delete(ctx context.Context, id uint) error {
 
 	return nil
 }
+
+func (r *classRepository) GetTotalClasses(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM classes`
+
+	var total int
+	err := r.db.QueryRowContext(ctx, query).Scan(&total)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total classes: %w", err)
+	}
+
+	return total, nil
+}

@@ -337,7 +337,7 @@ func (r *studentRepository) GetPasswordByStudentID(ctx context.Context, studentI
 }
 
 func (r *studentRepository) IsStudentExist(ctx context.Context, studentID string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1)`
+	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1 AND is_active = true)`
 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, studentID).Scan(&exists)
@@ -346,4 +346,25 @@ func (r *studentRepository) IsStudentExist(ctx context.Context, studentID string
 	}
 
 	return exists, nil
+}
+
+func (r *studentRepository) GetStats(ctx context.Context) (*models.StudentStats, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total_students,
+			COUNT(CASE WHEN is_active = true THEN 1 END) as active_students,
+			COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_students
+		FROM students`
+
+	stats := &models.StudentStats{}
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&stats.TotalStudents,
+		&stats.ActiveStudents,
+		&stats.InactiveStudents,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get students stats: %w", err)
+	}
+
+	return stats, nil
 }

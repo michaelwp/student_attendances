@@ -5,6 +5,7 @@ import (
 	"github.com/michaelwp/student_attendance/internal/models"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -52,14 +53,14 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	var loginReq LoginRequest
 	if err := c.BodyParser(&loginReq); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_request_body",
+			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
 		})
 	}
 
 	if loginReq.UserType == "" || loginReq.UserID == "" || loginReq.Password == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.required_fields_missing",
+			"translate_key": "error.required_fields_missing",
 			"error":         "User type, user ID, and password are required",
 		})
 	}
@@ -67,87 +68,34 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	// Validate user type
 	if loginReq.UserType != "admin" && loginReq.UserType != "teacher" && loginReq.UserType != "student" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate.key": "error.invalid_user_type",
+			"translate_key": "error.invalid_user_type",
 			"error":         "User type must be admin, teacher, or student",
 		})
 	}
 
+	var userID uint
 	var storedPassword string
-	var errGetPassword error
+	var err error
 
 	// Authenticate based on a user type
 	switch loginReq.UserType {
 	case models.UserTypeAdmin.String():
-		// For admin, userID is email
-		userExists, err := h.adminRepo.IsAdminExist(c.Context(), loginReq.UserID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "error.authentication_failed",
-				"error":         "Authentication failed",
-			})
-		}
-		if !userExists {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_credentials",
-				"error":         "Invalid credentials",
-			})
-		}
-
-		// Check if admin is active
-		admin, err := h.adminRepo.GetByEmail(c.Context(), loginReq.UserID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "error.authentication_failed",
-				"error":         "Authentication failed",
-			})
-		}
-		if !admin.IsActive {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.account_deactivated",
-				"error":         "Account is deactivated",
-			})
-		}
-
-		storedPassword, errGetPassword = h.adminRepo.GetPasswordByEmail(c.Context(), loginReq.UserID)
-
+		userID, storedPassword, err = h.authenticateAdmin(c.Context(), loginReq.UserID)
 	case models.UserTypeTeacher.String(), "teacher":
-		// For teacher, userID is teacher_id
-		userExists, err := h.teacherRepo.IsTeacherExist(c.Context(), loginReq.UserID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "error.authentication_failed",
-				"error":         "Authentication failed",
-			})
-		}
-		if !userExists {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_credentials",
-				"error":         "Invalid credentials",
-			})
-		}
-		storedPassword, errGetPassword = h.teacherRepo.GetPasswordByTeacherID(c.Context(), loginReq.UserID)
-
+		userID, storedPassword, err = h.authenticateTeacher(c.Context(), loginReq.UserID)
 	case models.UserTypeStudent.String():
-		// For student, userID is student_id
-		userExists, err := h.studentRepo.IsStudentExist(c.Context(), loginReq.UserID)
-		if err != nil {
-			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "error.authentication_failed",
-				"error":         "Authentication failed",
-			})
-		}
-		if !userExists {
-			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_credentials",
-				"error":         "Invalid credentials",
-			})
-		}
-		storedPassword, errGetPassword = h.studentRepo.GetPasswordByStudentID(c.Context(), loginReq.UserID)
+		userID, storedPassword, err = h.authenticateStudent(c.Context(), loginReq.UserID)
 	}
 
-	if errGetPassword != nil {
+	if err != nil {
+		if fiberErr, ok := err.(*fiber.Error); ok {
+			return c.Status(fiberErr.Code).JSON(fiber.Map{
+				"translate_key": "error." + fiberErr.Message,
+				"error":         fiberErr.Message,
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.authentication_failed",
+			"translate_key": "error.authentication_failed",
 			"error":         "Authentication failed",
 		})
 	}
@@ -155,52 +103,24 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	// Verify password
 	if err := pkg.ComparePasswords(storedPassword, loginReq.Password); err != nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"translate.key": "error.invalid_credentials",
+			"translate_key": "error.invalid_credentials",
 			"error":         "Invalid credentials",
 		})
 	}
 
-	// Generate JWT token
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.jwt_secret_missing",
-			"error":         "JWT secret not configured",
-		})
-	}
-
-	jwtConfig := pkg.JWTConfig{
-		SecretKey:     jwtSecret,
-		TokenDuration: time.Hour, // 1-hour expiration
-	}
-
-	token, err := pkg.GenerateToken(loginReq.UserID, loginReq.UserType, jwtConfig)
+	// Generate and cache JWT token
+	strUserID := strconv.FormatUint(uint64(userID), 10) // Safe conversion from uint to string
+	token, err := h.generateAndCacheToken(c.Context(), strUserID, loginReq.UserType)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.token_generation_failed",
-			"error":         "Failed to generate token",
-		})
-	}
-
-	// Cache token in Redis with 1-hour expiration
-	tokenKey := "token:" + loginReq.UserType + ":" + loginReq.UserID
-	err = h.redisClient.Set(context.Background(), tokenKey, token, time.Hour).Err()
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.token_caching_failed",
-			"error":         "Failed to cache token",
+			"translate_key": "error.token_generation_failed",
+			"error":         "Failed to generate or cache token",
 		})
 	}
 
 	// Update last login for admin
 	if loginReq.UserType == "admin" {
-		admin, _ := h.adminRepo.GetByEmail(c.Context(), loginReq.UserID)
-		if admin != nil {
-			err := h.adminRepo.UpdateLastLogin(c.Context(), admin.ID, time.Now())
-			if err != nil {
-				log.Println("error updating last login for admin:", err)
-			}
-		}
+		h.updateAdminLastLogin(c.Context(), loginReq.UserID)
 	}
 
 	c.Cookie(&fiber.Cookie{
@@ -213,13 +133,141 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	})
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.login_successful",
+		"translate_key": "success.login_successful",
 		"message":       "Login successful",
 		"token":         token,
 		"user_type":     loginReq.UserType,
 		"user_id":       loginReq.UserID,
 		"expires_at":    time.Now().Add(time.Hour).Unix(),
 	})
+}
+
+// authenticateAdmin validates admin credentials and returns userID and password if successful
+func (h *authHandler) authenticateAdmin(ctx context.Context, userID string) (uint, string, error) {
+	userExists, err := h.adminRepo.IsAdminExist(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+	if !userExists {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
+	}
+
+	// Check if admin is active
+	admin, err := h.adminRepo.GetByEmail(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if !admin.IsActive {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Account is deactivated")
+	}
+
+	storedPassword, err := h.adminRepo.GetPasswordByEmail(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return admin.ID, storedPassword, nil
+}
+
+// authenticateTeacher validates teacher credentials and returns userID and password if successful
+func (h *authHandler) authenticateTeacher(ctx context.Context, userID string) (uint, string, error) {
+	userExists, err := h.teacherRepo.IsTeacherExist(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+	if !userExists {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
+	}
+
+	// Check if the teacher is active
+	teacher, err := h.teacherRepo.GetByTeacherID(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if !teacher.IsActive {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Account is deactivated")
+	}
+
+	storedPassword, err := h.teacherRepo.GetPasswordByTeacherID(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return teacher.ID, storedPassword, nil
+}
+
+// authenticateStudent validates student credentials and returns userID and password if successful
+func (h *authHandler) authenticateStudent(ctx context.Context, userID string) (uint, string, error) {
+	userExists, err := h.studentRepo.IsStudentExist(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+	if !userExists {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Invalid credentials")
+	}
+
+	// Check if the student is active
+	student, err := h.studentRepo.GetByStudentID(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	if !student.IsActive {
+		return 0, "", fiber.NewError(fiber.StatusUnauthorized, "Account is deactivated")
+	}
+
+	storedPassword, err := h.studentRepo.GetPasswordByStudentID(ctx, userID)
+	if err != nil {
+		return 0, "", err
+	}
+
+	return student.ID, storedPassword, nil
+}
+
+// generateAndCacheToken generates a JWT token and caches it in Redis
+func (h *authHandler) generateAndCacheToken(ctx context.Context, userID, userType string) (string, error) {
+	// Get JWT secret from the environment
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		return "", fiber.NewError(fiber.StatusInternalServerError, "JWT secret not configured")
+	}
+
+	// Configure JWT
+	jwtConfig := pkg.JWTConfig{
+		SecretKey:     jwtSecret,
+		TokenDuration: time.Hour, // 1-hour expiration
+	}
+
+	// Generate token
+	token, err := pkg.GenerateToken(userID, userType, jwtConfig)
+	if err != nil {
+		return "", err
+	}
+
+	// Cache token in Redis with 1-hour expiration
+	tokenKey := "token:" + userType + ":" + userID
+	err = h.redisClient.Set(ctx, tokenKey, token, time.Hour).Err()
+	if err != nil {
+		return "", err
+	}
+
+	return token, nil
+}
+
+// updateAdminLastLogin updates the last login time for an admin
+func (h *authHandler) updateAdminLastLogin(ctx context.Context, email string) {
+	admin, err := h.adminRepo.GetByEmail(ctx, email)
+	if err != nil || admin == nil {
+		log.Println("error getting admin for last login update:", err)
+		return
+	}
+
+	err = h.adminRepo.UpdateLastLogin(ctx, admin.ID, time.Now())
+	if err != nil {
+		log.Println("error updating last login for admin:", err)
+	}
 }
 
 // Logout godoc
@@ -239,7 +287,7 @@ func (h *authHandler) Logout(c *fiber.Ctx) error {
 
 	if userID == nil || userType == nil {
 		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-			"translate.key": "error.authentication_required",
+			"translate_key": "error.authentication_required",
 			"error":         "Authentication required",
 		})
 	}
@@ -249,7 +297,7 @@ func (h *authHandler) Logout(c *fiber.Ctx) error {
 	err := h.redisClient.Del(context.Background(), tokenKey).Err()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate.key": "error.logout_failed",
+			"translate_key": "error.logout_failed",
 			"error":         "Failed to logout",
 		})
 	}
@@ -265,7 +313,7 @@ func (h *authHandler) Logout(c *fiber.Ctx) error {
 	})
 
 	return c.JSON(fiber.Map{
-		"translate.key": "success.logout_successful",
+		"translate_key": "success.logout_successful",
 		"message":       "Logout successful",
 	})
 }

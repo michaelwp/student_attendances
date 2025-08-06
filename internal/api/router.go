@@ -70,6 +70,7 @@ func SetupRoutes(
 	teachers.Get("/:id/photo", h.Teacher.GetPhoto)
 	teachers.Put("/teacher-id/:teacherId/reset-password", h.Student.ResetPassword)
 	teachers.Put("/teacher-id/:teacherId/password", h.Student.UpdatePassword)
+	teachers.Get("/stats", h.Admin.GetStat)
 
 	// Class routes
 	classes := api.Group("/classes", middleware.JWTMiddleware(redisClient))
@@ -93,6 +94,7 @@ func SetupRoutes(
 	students.Get("/:id/photo", h.Student.GetPhoto)
 	students.Put("/student-id/:studentId/reset-password", h.Student.ResetPassword)
 	students.Put("/student-id/:studentId/password", h.Student.UpdatePassword)
+	students.Get("/stats", h.Admin.GetStat)
 
 	// Attendance routes
 	attendances := api.Group("/attendances", middleware.JWTMiddleware(redisClient))
@@ -132,6 +134,7 @@ func SetupRoutes(
 	admins.Delete("/:id", h.Admin.Delete)
 	admins.Put("/:id/password", h.Admin.UpdatePassword)
 	admins.Put("/:id/status", h.Admin.SetActiveStatus)
+	admins.Get("/stats", h.Admin.GetStat)
 
 	// Authentication routes
 	auth := api.Group("/auth")

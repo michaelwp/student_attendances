@@ -13,6 +13,13 @@ type Student struct {
 	Password  string    `json:"-" db:"password"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	IsActive  bool      `json:"is_active" db:"is_active"`
+}
+
+type StudentStats struct {
+	TotalStudents    int `json:"total_students" db:"total_students"`
+	ActiveStudents   int `json:"active_students" db:"active_students"`
+	InactiveStudents int `json:"inactive_students" db:"inactive_students"`
 }
 
 func (Student) TableName() string {

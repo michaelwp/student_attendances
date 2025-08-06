@@ -291,7 +291,7 @@ func (r *teacherRepository) GetPasswordByTeacherID(ctx context.Context, teacherI
 }
 
 func (r *teacherRepository) IsTeacherExist(ctx context.Context, teacherID string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM teachers WHERE teacher_id = $1)`
+	query := `SELECT EXISTS(SELECT 1 FROM teachers WHERE teacher_id = $1 AND is_active = true)`
 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(&exists)
@@ -300,4 +300,25 @@ func (r *teacherRepository) IsTeacherExist(ctx context.Context, teacherID string
 	}
 
 	return exists, nil
+}
+
+func (r *teacherRepository) GetStats(ctx context.Context) (*models.TeacherStats, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total_teachers,
+			COUNT(CASE WHEN is_active = true THEN 1 END) as active_teachers,
+			COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_teachers
+		FROM teachers`
+
+	stats := &models.TeacherStats{}
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&stats.TotalTeachers,
+		&stats.ActiveTeachers,
+		&stats.InactiveTeachers,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get teachers stats: %w", err)
+	}
+
+	return stats, nil
 }
