@@ -212,7 +212,7 @@ func (r *studentRepository) GetAll(ctx context.Context, limit, offset int) ([]*m
 func (r *studentRepository) Update(ctx context.Context, student *models.Student) error {
 	query := `
 		UPDATE students 
-		SET student_id = $2, classes_id = $3, first_name = $4, last_name = $5, email = $6, phone = $7, password = $8, updated_at = NOW()
+		SET student_id = $2, classes_id = $3, first_name = $4, last_name = $5, email = $6, phone = $7, updated_at = NOW()
 		WHERE id = $1
 		RETURNING updated_at`
 
@@ -224,7 +224,6 @@ func (r *studentRepository) Update(ctx context.Context, student *models.Student)
 		student.LastName,
 		student.Email,
 		student.Phone,
-		student.Password,
 	).Scan(&student.UpdatedAt)
 
 	if err != nil {
@@ -255,4 +254,50 @@ func (r *studentRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
+}
+
+func (r *studentRepository) UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error {
+	query := `
+		UPDATE students 
+		SET photo_path = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, id, photoPath).Scan(&updatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("student not found")
+		}
+		return fmt.Errorf("failed to update student photo path: %w", err)
+	}
+
+	return nil
+}
+
+func (r *studentRepository) GetPhotoPath(ctx context.Context, id uint) (string, error) {
+	query := `SELECT photo_path FROM students WHERE id = $1`
+
+	var photoPath string
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&photoPath)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("student not found")
+		}
+		return "", fmt.Errorf("failed to get student photo path: %w", err)
+	}
+
+	return photoPath, nil
+}
+
+func (r *studentRepository) GetTotalStudents(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM students`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total students: %w", err)
+	}
+
+	return count, nil
 }

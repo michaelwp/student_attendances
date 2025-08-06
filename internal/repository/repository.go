@@ -1,6 +1,8 @@
 package repository
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 // NewRepositories creates a new instance of all repositories
 func NewRepositories(db *sql.DB) *Repositories {

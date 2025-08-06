@@ -1,7 +1,14 @@
 package handlers
 
 import (
+	"fmt"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/michaelwp/student_attendance/internal/config"
+	"io"
+	"log"
+	"path/filepath"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/michaelwp/student_attendance/internal/models"
@@ -10,12 +17,16 @@ import (
 
 type studentHandler struct {
 	studentRepo repository.StudentRepository
+	s3Config    *config.S3Config
+	s3Client    *s3.Client
 }
 
 // NewStudentHandler creates a new student handler
-func NewStudentHandler(studentRepo repository.StudentRepository) StudentHandler {
+func NewStudentHandler(studentRepo repository.StudentRepository, s3Client *s3.Client, s3Config *config.S3Config) StudentHandler {
 	return &studentHandler{
 		studentRepo: studentRepo,
+		s3Client:    s3Client,
+		s3Config:    s3Config,
 	}
 }
 
@@ -34,20 +45,21 @@ func (h *studentHandler) Create(c *fiber.Ctx) error {
 	var student models.Student
 	if err := c.BodyParser(&student); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"translate.key": "error.invalid.request.body",
+			"error":         "Invalid request body",
 		})
 	}
 
 	if err := h.studentRepo.Create(c.Context(), &student); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to create student",
+			"translate.key": "error.student.creation.failed",
+			"error":         "Failed to create student",
 		})
 	}
 
-	student.Password = ""
 	return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-		"message": "Student created successfully",
-		"data":    student,
+		"translate.key": "success.student.created.successfully",
+		"message":       "Student created successfully",
 	})
 }
 
@@ -67,20 +79,24 @@ func (h *studentHandler) GetByID(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid student ID",
+			"translate.key": "error.invalid.student.id",
+			"error":         "Invalid student ID",
 		})
 	}
 
 	student, err := h.studentRepo.GetByID(c.Context(), uint(id))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Student not found",
+			"translate.key": "error.student.not.found",
+			"error":         "Student not found",
 		})
 	}
 
 	student.Password = ""
 	return c.JSON(fiber.Map{
-		"data": student,
+		"translate.key": "success.student.retrieved.successfully",
+		"message":       "Student retrieved successfully",
+		"data":          student,
 	})
 }
 
@@ -99,20 +115,24 @@ func (h *studentHandler) GetByStudentID(c *fiber.Ctx) error {
 	studentID := c.Params("studentId")
 	if studentID == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Student ID is required",
+			"translate.key": "error.student.id.required",
+			"error":         "Student ID is required",
 		})
 	}
 
 	student, err := h.studentRepo.GetByStudentID(c.Context(), studentID)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"error": "Student not found",
+			"translate.key": "error.student.not.found",
+			"error":         "Student not found",
 		})
 	}
 
 	student.Password = ""
 	return c.JSON(fiber.Map{
-		"data": student,
+		"translate.key": "success.student.retrieved.successfully",
+		"message":       "Student retrieved successfully",
+		"data":          student,
 	})
 }
 
@@ -138,7 +158,8 @@ func (h *studentHandler) GetAll(c *fiber.Ctx) error {
 	students, err := h.studentRepo.GetAll(c.Context(), limit, offset)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get students",
+			"translate.key": "errror.students.retrieval.failed",
+			"error":         "Failed to get students",
 		})
 	}
 
@@ -146,11 +167,21 @@ func (h *studentHandler) GetAll(c *fiber.Ctx) error {
 		student.Password = ""
 	}
 
+	totalStudents, err := h.studentRepo.GetTotalStudents(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.total.students.retrieval.failed",
+			"error":         "Failed to get total students",
+		})
+	}
+
 	return c.JSON(fiber.Map{
-		"data":   students,
-		"count":  len(students),
-		"limit":  limit,
-		"offset": offset,
+		"translate.key": "success.students.retrieved.successfully",
+		"message":       "Students retrieved successfully",
+		"data":          students,
+		"total":         totalStudents,
+		"limit":         limit,
+		"offset":        offset,
 	})
 }
 
@@ -170,14 +201,16 @@ func (h *studentHandler) GetByClass(c *fiber.Ctx) error {
 	classID, err := strconv.ParseUint(classIDParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid class ID",
+			"translate.key": "error.invalid.class.id",
+			"error":         "Invalid class ID",
 		})
 	}
 
 	students, err := h.studentRepo.GetByClass(c.Context(), uint(classID))
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to get students",
+			"translate.key": "error.students.retrieval.failed",
+			"error":         "Failed to get students",
 		})
 	}
 
@@ -186,8 +219,10 @@ func (h *studentHandler) GetByClass(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"data":  students,
-		"count": len(students),
+		"translate.key": "success.students.retrieved.successfully",
+		"message":       "Students retrieved successfully",
+		"data":          students,
+		"total":         len(students),
 	})
 }
 
@@ -208,28 +243,30 @@ func (h *studentHandler) Update(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid student ID",
+			"translate.key": "error.invalid.student.id",
+			"error":         "Invalid student ID",
 		})
 	}
 
 	var student models.Student
 	if err := c.BodyParser(&student); err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid request body",
+			"translate.key": "error.invalid.request.body",
+			"error":         "Invalid request body",
 		})
 	}
 
 	student.ID = uint(id)
 	if err := h.studentRepo.Update(c.Context(), &student); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to update student",
+			"translate.key": "error.student.update.failed",
+			"error":         "Failed to update student",
 		})
 	}
 
-	student.Password = ""
 	return c.JSON(fiber.Map{
-		"message": "Student updated successfully",
-		"data":    student,
+		"translate.key": "success.student.updated",
+		"message":       "Student updated successfully",
 	})
 }
 
@@ -249,17 +286,141 @@ func (h *studentHandler) Delete(c *fiber.Ctx) error {
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid student ID",
+			"translate.key": "error.invalid.student.id",
+			"error":         "Invalid student ID",
 		})
 	}
 
 	if err := h.studentRepo.Delete(c.Context(), uint(id)); err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to delete student",
+			"translate.key": "error.student.deletion.failed",
+			"error":         "Failed to delete student",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"message": "Student deleted successfully",
+		"translate.key": "success.student.deleted",
+		"message":       "Student deleted successfully",
+	})
+}
+
+// UploadPhoto godoc
+// @Summary Upload student photo
+// @Description Upload a photo for a student and update their photo path
+// @Tags Students
+// @Accept multipart/form-data
+// @Produce json
+// @Param id path int true "Student ID"
+// @Param photo formData file true "Student photo"
+// @Success 200 {object} map[string]interface{} "Photo uploaded successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /students/{id}/photo [put]
+func (h *studentHandler) UploadPhoto(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.student.id",
+			"error":         "Invalid student ID",
+		})
+	}
+
+	file, err := c.FormFile("photo")
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "nerror.o.file.uploaded",
+			"error":         "No file uploaded",
+		})
+	}
+
+	fileContent, err := file.Open()
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.failed.to.open.file",
+			"error":         "Failed to read photo file",
+		})
+	}
+	defer fileContent.Close()
+
+	buffer, err := io.ReadAll(fileContent)
+	if err != nil {
+		log.Println("error on get buffer from file content:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.failed.to.read.file",
+			"error":         "Failed to read file",
+		})
+	}
+
+	filename := "student_" + idParam + "_" + strconv.FormatInt(time.Now().Unix(), 10) + filepath.Ext(file.Filename)
+	key := fmt.Sprintf("photos/students/%d/%s", id, filename)
+
+	if err := h.s3Config.UploadFile(h.s3Client, key, buffer); err != nil {
+		log.Println("error on upload file to S3:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.failed.to.upload.file",
+			"error":         "Failed to upload file to S3",
+		})
+	}
+
+	photoPath := h.s3Config.GetObjectURL(key)
+	if err := h.studentRepo.UpdatePhotoPath(c.Context(), uint(id), key); err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.photo.update.failed",
+			"error":         "Failed to update photo path",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.photo.uploaded.successfully",
+		"message":       "Photo uploaded successfully",
+		"photoPath":     photoPath,
+	})
+}
+
+// GetPhoto godoc
+// @Summary Get student photo
+// @Description Get the signed URL for a student's photo
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Param id path int true "Student ID"
+// @Success 200 {object} map[string]interface{} "Photo URL retrieved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid student ID"
+// @Failure 404 {object} map[string]interface{} "Photo not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /students/{id}/photo [get]
+func (h *studentHandler) GetPhoto(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate.key": "error.invalid.student.id",
+			"error":         "Invalid student ID",
+		})
+	}
+
+	photoPath, err := h.studentRepo.GetPhotoPath(c.Context(), uint(id))
+	if err != nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate.key": "error.photo.not.found",
+			"error":         "Photo not found",
+		})
+	}
+
+	expires := time.Minute * 15
+
+	signedURL, err := h.s3Config.GetSignedURL(h.s3Client, photoPath, expires)
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate.key": "error.failed.to.generate.photo.url",
+			"error":         "Failed to generate photo URL",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate.key": "success.photo.retrieved",
+		"message":       "Photo URL retrieved successfully",
+		"photoUrl":      signedURL,
 	})
 }

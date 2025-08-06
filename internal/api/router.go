@@ -2,24 +2,30 @@ package api
 
 import (
 	"database/sql"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/michaelwp/student_attendance/internal/config"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	_ "github.com/michaelwp/student_attendance/docs"
 	"github.com/michaelwp/student_attendance/internal/api/handlers"
 	"github.com/michaelwp/student_attendance/internal/repository"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
-	_ "github.com/michaelwp/student_attendance/docs"
 )
 
-func SetupRoutes(app *fiber.App, postgresClient *sql.DB) {
+func SetupRoutes(app *fiber.App, postgresClient *sql.DB, s3Client *s3.Client, s3Config *config.S3Config) {
 	// Middleware
 	app.Use(logger.New())
 	app.Use(cors.New())
 
 	// Initialize repositories and handlers
 	repos := repository.NewRepositories(postgresClient)
-	h := handlers.NewHandlers(repos)
+	h := handlers.NewHandlers(&handlers.HandlerDependencies{
+		Repositories: repos,
+		S3Client:     s3Client,
+		S3Config:     s3Config,
+	})
 
 	// Swagger documentation
 	app.Get("/swagger/*", fiberSwagger.WrapHandler)
@@ -49,6 +55,8 @@ func SetupRoutes(app *fiber.App, postgresClient *sql.DB) {
 	teachers.Get("/teacher-id/:teacherId", h.Teacher.GetByTeacherID)
 	teachers.Put("/:id", h.Teacher.Update)
 	teachers.Delete("/:id", h.Teacher.Delete)
+	teachers.Put("/:id/photo", h.Teacher.UploadPhoto)
+	teachers.Get("/:id/photo", h.Teacher.GetPhoto)
 
 	// Class routes
 	classes := api.Group("/classes")
@@ -68,6 +76,8 @@ func SetupRoutes(app *fiber.App, postgresClient *sql.DB) {
 	students.Get("/class-id/:classId", h.Student.GetByClass)
 	students.Put("/:id", h.Student.Update)
 	students.Delete("/:id", h.Student.Delete)
+	students.Put("/:id/photo", h.Student.UploadPhoto)
+	students.Get("/:id/photo", h.Student.GetPhoto)
 
 	// Attendance routes
 	attendances := api.Group("/attendances")
