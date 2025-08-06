@@ -63,6 +63,18 @@ type AbsentRequestHandler interface {
 	Delete(c *fiber.Ctx) error
 }
 
+// AdminHandler defines the interface for admin API operations
+type AdminHandler interface {
+	Create(c *fiber.Ctx) error
+	GetByID(c *fiber.Ctx) error
+	GetByEmail(c *fiber.Ctx) error
+	GetAll(c *fiber.Ctx) error
+	Update(c *fiber.Ctx) error
+	Delete(c *fiber.Ctx) error
+	UpdatePassword(c *fiber.Ctx) error
+	SetActiveStatus(c *fiber.Ctx) error
+}
+
 // Handlers aggregates all handler interfaces
 type Handlers struct {
 	Teacher       TeacherHandler
@@ -70,4 +82,5 @@ type Handlers struct {
 	Student       StudentHandler
 	Attendance    AttendanceHandler
 	AbsentRequest AbsentRequestHandler
+	Admin         AdminHandler
 }

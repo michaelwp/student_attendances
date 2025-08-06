@@ -187,6 +187,16 @@ The application follows clean architecture principles with clear separation of c
 - `PATCH /api/v1/absent-requests/{id}/status` - Update request status
 - `DELETE /api/v1/absent-requests/{id}` - Delete absent request
 
+### Admins
+- `POST /api/v1/admins` - Create a new admin
+- `GET /api/v1/admins` - Get all admins (paginated)
+- `GET /api/v1/admins/{id}` - Get admin by database ID
+- `GET /api/v1/admins/email/{email}` - Get admin by email
+- `PUT /api/v1/admins/{id}` - Update admin
+- `DELETE /api/v1/admins/{id}` - Delete admin
+- `PUT /api/v1/admins/{id}/password` - Update admin password (with old password verification)
+- `PUT /api/v1/admins/{id}/status` - Set admin active status (activate/deactivate)
+
 ## Data Models
 
 ### Teacher
@@ -267,6 +277,22 @@ The application follows clean architecture principles with clear separation of c
 - `pending`: Request is waiting for approval
 - `approved`: Request has been approved
 - `rejected`: Request has been rejected
+
+### Admin
+```json
+{
+  "id": 1,
+  "email": "admin@school.com",
+  "last_login": "2024-01-15T10:30:00Z",
+  "is_active": true,
+  "created_at": "2024-01-01T00:00:00Z",
+  "updated_at": "2024-01-01T00:00:00Z"
+}
+```
+
+**Admin Status Options:**
+- `is_active: true`: Admin account is active and can log in
+- `is_active: false`: Admin account is deactivated and cannot log in
 
 ## Development Commands
 
@@ -473,6 +499,41 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
   }'
 ```
 
+#### Create an Admin
+```bash
+curl -X POST http://localhost:8080/api/v1/admins \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@school.com",
+    "password": "securepassword123",
+    "is_active": true
+  }'
+```
+
+#### Get Admin by Email
+```bash
+curl -X GET http://localhost:8080/api/v1/admins/email/admin@school.com
+```
+
+#### Update Admin Password
+```bash
+curl -X PUT http://localhost:8080/api/v1/admins/1/password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+#### Set Admin Active Status
+```bash
+curl -X PUT http://localhost:8080/api/v1/admins/1/status \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_active": false
+  }'
+```
+
 ## Database Schema
 
 The application uses PostgreSQL with the following main tables:
@@ -482,6 +543,7 @@ The application uses PostgreSQL with the following main tables:
 - **students**: Student information and class assignments
 - **attendances**: Daily attendance records
 - **absent_requests**: Student absence requests with approval workflow
+- **admins**: Administrator accounts with authentication and status management
 
 All tables include:
 - Auto-incrementing primary keys
@@ -648,6 +710,69 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
 - All passwords are hashed with bcrypt before storage
 - Password complexity is handled by the generation algorithm
 - User existence is verified before any password operations
+
+## Admin Management
+
+The API provides comprehensive administrator account management functionality:
+
+### Features
+- **Admin Account Creation**: Create new admin accounts with email and password
+- **Account Status Management**: Activate/deactivate admin accounts
+- **Password Management**: Secure password updates with old password verification
+- **Admin Lookup**: Find admins by ID or email address
+- **Account Management**: Full CRUD operations for admin accounts
+- **Security**: Password hashing with bcrypt, account status controls
+
+### API Endpoints
+- `POST /api/v1/admins` - Create a new admin
+- `GET /api/v1/admins` - Get all admins (paginated)
+- `GET /api/v1/admins/{id}` - Get admin by database ID
+- `GET /api/v1/admins/email/{email}` - Get admin by email
+- `PUT /api/v1/admins/{id}` - Update admin information
+- `DELETE /api/v1/admins/{id}` - Delete admin account
+- `PUT /api/v1/admins/{id}/password` - Update admin password
+- `PUT /api/v1/admins/{id}/status` - Set admin active status
+
+### Admin Account States
+- **Active (`is_active: true`)**: Admin can log in and access the system
+- **Inactive (`is_active: false`)**: Admin account is disabled and cannot log in
+
+### Usage Examples
+
+#### Create Admin Account
+```bash
+curl -X POST http://localhost:8080/api/v1/admins \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "admin@school.com",
+    "password": "securepassword123",
+    "is_active": true
+  }'
+```
+
+#### Deactivate Admin Account
+```bash
+curl -X PUT http://localhost:8080/api/v1/admins/1/status \
+  -H "Content-Type: application/json" \
+  -d '{
+    "is_active": false
+  }'
+```
+
+### Response Format
+```json
+{
+  "translate.key": "success.admin_created",
+  "message": "Admin created successfully"
+}
+```
+
+### Security Features
+- Email-based authentication and identification
+- Secure password hashing with bcrypt
+- Account activation/deactivation controls
+- Password update requires current password verification
+- Admin existence validation before operations
 
 ## Security Features
 
