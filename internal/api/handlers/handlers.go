@@ -4,12 +4,14 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
 	"github.com/michaelwp/student_attendance/internal/repository"
+	"github.com/redis/go-redis/v9"
 )
 
 type HandlerDependencies struct {
 	Repositories *repository.Repositories
 	S3Client     *s3.Client
 	S3Config     *config.S3Config
+	RedisClient  *redis.Client
 }
 
 // NewHandlers creates a new instance of all handlers

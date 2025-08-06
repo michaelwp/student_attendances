@@ -19,6 +19,9 @@ type TeacherRepository interface {
 	UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error
 	GetPhotoPath(ctx context.Context, id uint) (string, error)
 	GetTotalTeachers(ctx context.Context) (int, error)
+	UpdatePassword(ctx context.Context, teacherID string, password string) error
+	GetPasswordByTeacherID(ctx context.Context, teacherID string) (string, error)
+	IsTeacherExist(ctx context.Context, teacherID string) (bool, error)
 }
 
 // ClassRepository defines the interface for class operations
@@ -44,6 +47,9 @@ type StudentRepository interface {
 	UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error
 	GetPhotoPath(ctx context.Context, id uint) (string, error)
 	GetTotalStudents(ctx context.Context) (int, error)
+	UpdatePassword(ctx context.Context, studentID string, password string) error
+	GetPasswordByStudentID(ctx context.Context, studentID string) (string, error)
+	IsStudentExist(ctx context.Context, studentID string) (bool, error)
 }
 
 // AttendanceRepository defines the interface for attendance operations

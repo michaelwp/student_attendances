@@ -301,3 +301,49 @@ func (r *studentRepository) GetTotalStudents(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+func (r *studentRepository) UpdatePassword(ctx context.Context, studentID string, password string) error {
+	query := `
+		UPDATE students 
+		SET password = $2, updated_at = NOW()
+		WHERE student_id = $1
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, studentID, password).Scan(&updatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("student not found")
+		}
+		return fmt.Errorf("failed to update student password: %w", err)
+	}
+
+	return nil
+}
+
+func (r *studentRepository) GetPasswordByStudentID(ctx context.Context, studentID string) (string, error) {
+	query := `SELECT password FROM students WHERE student_id = $1`
+
+	var password string
+	err := r.db.QueryRowContext(ctx, query, studentID).Scan(&password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("student not found")
+		}
+		return "", fmt.Errorf("failed to get student password: %w", err)
+	}
+
+	return password, nil
+}
+
+func (r *studentRepository) IsStudentExist(ctx context.Context, studentID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1)`
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, studentID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check student existence: %w", err)
+	}
+
+	return exists, nil
+}

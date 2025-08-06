@@ -20,13 +20,17 @@
 package main
 
 import (
+	"database/sql"
 	"github.com/gofiber/fiber/v2"
 	"github.com/joho/godotenv"
 	_ "github.com/michaelwp/student_attendance/docs"
 	"github.com/michaelwp/student_attendance/internal/api"
 	"github.com/michaelwp/student_attendance/internal/config"
+	"github.com/redis/go-redis/v9"
 	"log"
 	"os"
+	"os/signal"
+	"syscall"
 )
 
 func init() {
@@ -37,10 +41,32 @@ func init() {
 	}
 }
 
+func gracefulShutdown(app *fiber.App, postgresClient *sql.DB, postgresConfig *config.PostgresConfig, redisClient *redis.Client) {
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
+	<-quit
+
+	log.Println("Shutting down server...")
+
+	if err := postgresConfig.CloseDB(postgresClient); err != nil {
+		log.Printf("Error closing PostgreSQL connection: %v\n", err)
+	}
+
+	if err := config.CloseRedisConnection(redisClient); err != nil {
+		log.Printf("Error closing Redis connection: %v\n", err)
+	}
+
+	if err := app.Shutdown(); err != nil {
+		log.Printf("Error shutting down Fiber server: %v\n", err)
+	}
+
+	log.Println("Server gracefully stopped")
+}
+
 func main() {
 	// connect to PostgreSQL database
-	postgres := config.NewPostgresConfig()
-	postgresClient, err := postgres.ConnectDB()
+	postgresConfig := config.NewPostgresConfig()
+	postgresClient, err := postgresConfig.ConnectDB()
 	if err != nil {
 		log.Fatalf("Error connecting to postgres database: %v", err)
 	}
@@ -50,6 +76,12 @@ func main() {
 	s3Client, err := s3Config.NewS3Client()
 	if err != nil {
 		log.Fatalf("Error connecting to AWS S3: %v", err)
+	}
+
+	// connect to Redis
+	redisClient, err := config.NewRedisClient()
+	if err != nil {
+		log.Fatalf("Error connecting to Redis: %v", err)
 	}
 
 	app := fiber.New(fiber.Config{
@@ -69,10 +101,17 @@ func main() {
 	})
 
 	// Setup routes
-	api.SetupRoutes(app, postgresClient, s3Client, s3Config)
+	api.SetupRoutes(app, postgresClient, s3Client, s3Config, redisClient)
 
 	port := os.Getenv("PORT")
 
+	go func() {
+		// Wait for a shutdown signal
+		gracefulShutdown(app, postgresClient, postgresConfig, redisClient)
+	}()
+
 	log.Printf("Student Attendance API listening on port %s", port)
-	log.Fatal(app.Listen(":" + port))
+	if err := app.Listen(":" + port); err != nil {
+		log.Fatalf("Error starting server: %v", err)
+	}
 }

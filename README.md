@@ -36,6 +36,7 @@ The application follows clean architecture principles with clear separation of c
 
 - Go 1.24.5 or higher
 - PostgreSQL 12 or higher
+- Redis (for session management and caching)
 - AWS S3 bucket (for photo storage)
 - Make (optional, for using Makefile commands)
 
@@ -82,6 +83,12 @@ The application follows clean architecture principles with clear separation of c
    AWS_ACCESS_KEY_ID=your-access-key-id
    AWS_SECRET_ACCESS_KEY=your-secret-access-key
    AWS_S3_BUCKET=your-bucket-name
+   
+   # Redis configuration
+   REDIS_HOST=localhost
+   REDIS_PORT=6379
+   REDIS_PASSWORD=
+   REDIS_DB=0
    
    # JWT and encryption (for future authentication)
    JWT_SECRET=your-secret-key
@@ -138,6 +145,8 @@ The application follows clean architecture principles with clear separation of c
 - `DELETE /api/v1/teachers/{id}` - Delete teacher
 - `PUT /api/v1/teachers/{id}/photo` - Upload teacher profile photo
 - `GET /api/v1/teachers/{id}/photo` - Get teacher profile photo (signed URL)
+- `PUT /api/v1/teachers/teacher-id/{teacherId}/reset-password` - Reset teacher password (generates new password)
+- `PUT /api/v1/teachers/teacher-id/{teacherId}/password` - Update teacher password (user provides old and new password)
 
 ### Classes
 - `POST /api/v1/classes` - Create a new class
@@ -157,6 +166,8 @@ The application follows clean architecture principles with clear separation of c
 - `DELETE /api/v1/students/{id}` - Delete student
 - `PUT /api/v1/students/{id}/photo` - Upload student profile photo
 - `GET /api/v1/students/{id}/photo` - Get student profile photo (signed URL)
+- `PUT /api/v1/students/student-id/{studentId}/reset-password` - Reset student password (generates new password)
+- `PUT /api/v1/students/student-id/{studentId}/password` - Update student password (user provides old and new password)
 
 ### Attendances
 - `POST /api/v1/attendances` - Create attendance record
@@ -432,6 +443,36 @@ curl -X PUT http://localhost:8080/api/v1/students/1/photo \
 curl -X GET http://localhost:8080/api/v1/students/1/photo
 ```
 
+#### Reset Teacher Password
+```bash
+curl -X PUT http://localhost:8080/api/v1/teachers/teacher-id/TCH001/reset-password
+```
+
+#### Update Teacher Password
+```bash
+curl -X PUT http://localhost:8080/api/v1/teachers/teacher-id/TCH001/password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+#### Reset Student Password
+```bash
+curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/reset-password
+```
+
+#### Update Student Password
+```bash
+curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
 ## Database Schema
 
 The application uses PostgreSQL with the following main tables:
@@ -532,6 +573,81 @@ photos/
     └── {student_id}/
         └── student_{id}_{timestamp}.{extension}
 ```
+
+## Password Management
+
+The API provides secure password management functionality for both teachers and students:
+
+### Features
+- **Password Reset**: Administrators can reset user passwords and generate new secure passwords
+- **Password Update**: Users can change their own passwords by providing old and new passwords
+- **Secure Hashing**: All passwords are hashed using bcrypt with configurable salt rounds
+- **Password Generation**: System generates secure random passwords when resetting
+- **Validation**: Comprehensive validation for password requirements and user existence
+
+### API Endpoints
+- `PUT /api/v1/teachers/teacher-id/{teacherId}/reset-password` - Reset teacher password
+- `PUT /api/v1/teachers/teacher-id/{teacherId}/password` - Update teacher password
+- `PUT /api/v1/students/student-id/{studentId}/reset-password` - Reset student password  
+- `PUT /api/v1/students/student-id/{studentId}/password` - Update student password
+
+### Usage Examples
+
+#### Reset Teacher Password (Admin Function)
+```bash
+curl -X PUT http://localhost:8080/api/v1/teachers/teacher-id/TCH001/reset-password
+```
+
+#### Update Teacher Password (User Function)
+```bash
+curl -X PUT http://localhost:8080/api/v1/teachers/teacher-id/TCH001/password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+#### Reset Student Password (Admin Function)
+```bash
+curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/reset-password
+```
+
+#### Update Student Password (User Function)
+```bash
+curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
+  -H "Content-Type: application/json" \
+  -d '{
+    "old_password": "current_password", 
+    "new_password": "new_secure_password"
+  }'
+```
+
+### Response Formats
+
+#### Reset Password Response
+```json
+{
+  "translate.key": "success.password.reset",
+  "message": "Password reset successfully",
+  "newPassword": "GeneratedSecurePassword123"
+}
+```
+
+#### Update Password Response
+```json
+{
+  "translate.key": "success.password.updated",
+  "message": "Password updated successfully"
+}
+```
+
+### Security Considerations
+- Reset password generates a new secure random password
+- Update password requires knowledge of the current password
+- All passwords are hashed with bcrypt before storage
+- Password complexity is handled by the generation algorithm
+- User existence is verified before any password operations
 
 ## Security Features
 

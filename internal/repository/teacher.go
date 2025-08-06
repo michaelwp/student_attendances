@@ -255,3 +255,49 @@ func (r *teacherRepository) GetTotalTeachers(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+func (r *teacherRepository) UpdatePassword(ctx context.Context, teacherID string, password string) error {
+	query := `
+		UPDATE teachers
+		SET password = $2, updated_at = NOW()
+		WHERE teacher_id = $1
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, teacherID, password).Scan(&updatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("teacher not found")
+		}
+		return fmt.Errorf("failed to update teacher password: %w", err)
+	}
+
+	return nil
+}
+
+func (r *teacherRepository) GetPasswordByTeacherID(ctx context.Context, teacherID string) (string, error) {
+	query := `SELECT password FROM teachers WHERE teacher_id = $1`
+
+	var password string
+	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(&password)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("teacher not found")
+		}
+		return "", fmt.Errorf("failed to get teacher password: %w", err)
+	}
+
+	return password, nil
+}
+
+func (r *teacherRepository) IsTeacherExist(ctx context.Context, teacherID string) (bool, error) {
+	query := `SELECT EXISTS(SELECT 1 FROM teachers WHERE teacher_id = $1)`
+
+	var exists bool
+	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(&exists)
+	if err != nil {
+		return false, fmt.Errorf("failed to check teacher existence: %w", err)
+	}
+
+	return exists, nil
+}
