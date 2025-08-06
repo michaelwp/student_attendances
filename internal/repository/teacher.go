@@ -166,7 +166,7 @@ func (r *teacherRepository) GetAll(ctx context.Context, limit, offset int) ([]*m
 func (r *teacherRepository) Update(ctx context.Context, teacher *models.Teacher) error {
 	query := `
 		UPDATE teachers 
-		SET teacher_id = $2, first_name = $3, last_name = $4, email = $5, phone = $6, password = $7, updated_at = NOW()
+		SET teacher_id = $2, first_name = $3, last_name = $4, email = $5, phone = $6, updated_at = NOW()
 		WHERE id = $1
 		RETURNING updated_at`
 
@@ -177,7 +177,6 @@ func (r *teacherRepository) Update(ctx context.Context, teacher *models.Teacher)
 		teacher.LastName,
 		teacher.Email,
 		teacher.Phone,
-		teacher.Password,
 	).Scan(&teacher.UpdatedAt)
 
 	if err != nil {
@@ -208,4 +207,51 @@ func (r *teacherRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
+}
+
+func (r *teacherRepository) UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error {
+	query := `
+		UPDATE teachers 
+		SET photo_path = $2, updated_at = NOW()
+		WHERE id = $1
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, id, photoPath).Scan(&updatedAt)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("teacher not found")
+		}
+		return fmt.Errorf("failed to update teacher photo path: %w", err)
+	}
+
+	return nil
+}
+
+func (r *teacherRepository) GetPhotoPath(ctx context.Context, id uint) (string, error) {
+	query := `SELECT photo_path FROM teachers WHERE id = $1`
+
+	var photoPath string
+	err := r.db.QueryRowContext(ctx, query, id).Scan(&photoPath)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return "", fmt.Errorf("teacher not found")
+		}
+		return "", fmt.Errorf("failed to get teacher photo path: %w", err)
+	}
+
+	return photoPath, nil
+}
+
+func (r *teacherRepository) GetTotalTeachers(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM teachers`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total teachers: %w", err)
+	}
+
+	return count, nil
 }

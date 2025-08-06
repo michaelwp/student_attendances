@@ -996,6 +996,79 @@ paths:
       summary: Update student
       tags:
       - Students
+  /students/{id}/photo:
+    get:
+      consumes:
+      - application/json
+      description: Get the signed URL for a student's photo
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo URL retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Photo not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get student photo
+      tags:
+      - Students
+    put:
+      consumes:
+      - multipart/form-data
+      description: Upload a photo for a student and update their photo path
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Student photo
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo uploaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Upload student photo
+      tags:
+      - Students
   /students/class-id/{classId}:
     get:
       consumes:
@@ -1222,6 +1295,74 @@ paths:
             additionalProperties: true
             type: object
       summary: Update teacher
+      tags:
+      - Teachers
+  /teachers/{id}/photo:
+    get:
+      consumes:
+      - application/json
+      description: Get teacher's photo signed URL
+      parameters:
+      - description: Teacher database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo URL retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid teacher ID
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Photo not found
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get teacher photo
+      tags:
+      - Teachers
+    put:
+      consumes:
+      - multipart/form-data
+      description: Upload a teacher's photo to S3 and update the photo path
+      parameters:
+      - description: Teacher database ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Teacher photo
+        in: formData
+        name: photo
+        required: true
+        type: file
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Photo uploaded successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Upload teacher photo
       tags:
       - Teachers
   /teachers/teacher-id/{teacherId}:

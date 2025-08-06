@@ -10,6 +10,8 @@ type TeacherHandler interface {
 	GetAll(c *fiber.Ctx) error
 	Update(c *fiber.Ctx) error
 	Delete(c *fiber.Ctx) error
+	UploadPhoto(c *fiber.Ctx) error
+	GetPhoto(c *fiber.Ctx) error
 }
 
 // ClassHandler defines the interface for class API operations
@@ -31,6 +33,8 @@ type StudentHandler interface {
 	GetByClass(c *fiber.Ctx) error
 	Update(c *fiber.Ctx) error
 	Delete(c *fiber.Ctx) error
+	UploadPhoto(c *fiber.Ctx) error
+	GetPhoto(c *fiber.Ctx) error
 }
 
 // AttendanceHandler defines the interface for attendance API operations

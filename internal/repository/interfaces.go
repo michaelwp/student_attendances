@@ -16,6 +16,9 @@ type TeacherRepository interface {
 	GetAll(ctx context.Context, limit, offset int) ([]*models.Teacher, error)
 	Update(ctx context.Context, teacher *models.Teacher) error
 	Delete(ctx context.Context, id uint) error
+	UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error
+	GetPhotoPath(ctx context.Context, id uint) (string, error)
+	GetTotalTeachers(ctx context.Context) (int, error)
 }
 
 // ClassRepository defines the interface for class operations
@@ -38,6 +41,9 @@ type StudentRepository interface {
 	GetAll(ctx context.Context, limit, offset int) ([]*models.Student, error)
 	Update(ctx context.Context, student *models.Student) error
 	Delete(ctx context.Context, id uint) error
+	UpdatePhotoPath(ctx context.Context, id uint, photoPath string) error
+	GetPhotoPath(ctx context.Context, id uint) (string, error)
+	GetTotalStudents(ctx context.Context) (int, error)
 }
 
 // AttendanceRepository defines the interface for attendance operations
