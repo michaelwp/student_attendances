@@ -44,7 +44,7 @@ func CheckRedisHealth(client *redis.Client) error {
 	defer cancel()
 
 	if err := client.Ping(ctx).Err(); err != nil {
-		return fmt.Errorf("Redis health check failed: %v", err)
+		return fmt.Errorf("redis health check failed: %v", err)
 	}
 	return nil
 }

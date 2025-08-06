@@ -41,18 +41,18 @@ func init() {
 	}
 }
 
-func gracefulShutdown(app *fiber.App, postgresClient *sql.DB, redisClient *redis.Client) {
+func gracefulShutdown(app *fiber.App, postgresClient *sql.DB, postgresConfig *config.PostgresConfig, redisClient *redis.Client) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt, syscall.SIGTERM)
 	<-quit
 
 	log.Println("Shutting down server...")
 
-	if err := postgresClient.Close(); err != nil {
+	if err := postgresConfig.CloseDB(postgresClient); err != nil {
 		log.Printf("Error closing PostgreSQL connection: %v\n", err)
 	}
 
-	if err := redisClient.Close(); err != nil {
+	if err := config.CloseRedisConnection(redisClient); err != nil {
 		log.Printf("Error closing Redis connection: %v\n", err)
 	}
 
@@ -65,8 +65,8 @@ func gracefulShutdown(app *fiber.App, postgresClient *sql.DB, redisClient *redis
 
 func main() {
 	// connect to PostgreSQL database
-	postgres := config.NewPostgresConfig()
-	postgresClient, err := postgres.ConnectDB()
+	postgresConfig := config.NewPostgresConfig()
+	postgresClient, err := postgresConfig.ConnectDB()
 	if err != nil {
 		log.Fatalf("Error connecting to postgres database: %v", err)
 	}
@@ -107,7 +107,7 @@ func main() {
 
 	go func() {
 		// Wait for a shutdown signal
-		gracefulShutdown(app, postgresClient, redisClient)
+		gracefulShutdown(app, postgresClient, postgresConfig, redisClient)
 	}()
 
 	log.Printf("Student Attendance API listening on port %s", port)
