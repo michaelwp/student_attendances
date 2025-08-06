@@ -1133,6 +1133,89 @@ paths:
       summary: Get student by student ID
       tags:
       - Students
+  /students/student-id/{studentId}/reset-password:
+    put:
+      consumes:
+      - application/json
+      description: Reset a student's password
+      parameters:
+      - description: Student ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset student password
+      tags:
+      - Students
+  /students/student-id/{studentId}/update-password:
+    put:
+      consumes:
+      - application/json
+      description: Update a student's password with a new one
+      parameters:
+      - description: Student ID
+        in: path
+        name: studentId
+        required: true
+        type: string
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update student password
+      tags:
+      - Students
   /teachers:
     get:
       consumes:
@@ -1395,6 +1478,89 @@ paths:
             additionalProperties: true
             type: object
       summary: Get teacher by teacher ID
+      tags:
+      - Teachers
+  /teachers/teacher-id/{teacherId}/reset-password:
+    put:
+      consumes:
+      - application/json
+      description: Reset a teacher's password
+      parameters:
+      - description: Teacher ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: New password
+        in: body
+        name: password
+        required: true
+        schema:
+          type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password reset successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Reset teacher password
+      tags:
+      - Teachers
+  /teachers/teacher-id/{teacherId}/update-password:
+    put:
+      consumes:
+      - application/json
+      description: Update a teacher's password with a new one
+      parameters:
+      - description: Teacher ID
+        in: path
+        name: teacherId
+        required: true
+        type: string
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update teacher password
       tags:
       - Teachers
 swagger: "2.0"
