@@ -70,15 +70,19 @@ export const Dashboard: React.FC = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatsCard
+        <DetailedStatsCard
           title={t('dashboard.stats.total_teachers')}
-          value={stats?.total_teachers || 0}
+          total={stats?.total_teachers || 0}
+          active={stats?.active_teachers || 0}
+          inactive={stats?.inactive_teachers || 0}
           icon="👨‍🏫"
           color="blue"
         />
-        <StatsCard
+        <DetailedStatsCard
           title={t('dashboard.stats.total_students')}
-          value={stats?.total_students || 0}
+          total={stats?.total_students || 0}
+          active={stats?.active_students || 0}
+          inactive={stats?.inactive_students || 0}
           icon="👨‍🎓"
           color="green"
         />
@@ -88,9 +92,11 @@ export const Dashboard: React.FC = () => {
           icon="🏫"
           color="purple"
         />
-        <StatsCard
+        <DetailedStatsCard
           title={t('dashboard.stats.total_admins')}
-          value={stats?.total_admins || 0}
+          total={stats?.total_admins || 0}
+          active={stats?.active_admins || 0}
+          inactive={stats?.inactive_admins || 0}
           icon="👤"
           color="orange"
         />
@@ -194,6 +200,58 @@ const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
           </div>
           <div className="text-2xl font-bold text-gray-900 dark:text-white">
             {value.toLocaleString()}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+interface DetailedStatsCardProps {
+  title: string;
+  total: number;
+  active: number;
+  inactive: number;
+  icon: string;
+  color: 'blue' | 'green' | 'purple' | 'orange';
+}
+
+const DetailedStatsCard: React.FC<DetailedStatsCardProps> = ({ title, total, active, inactive, icon, color }) => {
+  const { t } = useTranslation();
+  
+  const colorClasses = {
+    blue: 'bg-blue-50 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400',
+    green: 'bg-green-50 dark:bg-green-900/50 text-green-600 dark:text-green-400',
+    purple: 'bg-purple-50 dark:bg-purple-900/50 text-purple-600 dark:text-purple-400',
+    orange: 'bg-orange-50 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400',
+  };
+
+  return (
+    <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6">
+      <div className="flex items-start">
+        <div className={`flex-shrink-0 p-3 rounded-lg ${colorClasses[color]}`}>
+          <span className="text-2xl">{icon}</span>
+        </div>
+        <div className="ml-4 flex-1">
+          <div className="text-sm font-medium text-gray-600 dark:text-gray-300">
+            {title}
+          </div>
+          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+            {total.toLocaleString()}
+          </div>
+          <div className="flex items-center space-x-4 mt-2 text-xs">
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-green-500 rounded-full mr-1"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                {t('dashboard.active')}: {active}
+              </span>
+            </div>
+            <div className="flex items-center">
+              <div className="w-2 h-2 bg-red-500 rounded-full mr-1"></div>
+              <span className="text-gray-600 dark:text-gray-400">
+                {t('dashboard.inactive')}: {inactive}
+              </span>
+            </div>
           </div>
         </div>
       </div>

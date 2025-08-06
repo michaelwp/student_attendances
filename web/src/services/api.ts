@@ -390,5 +390,5 @@ export const adminsApi = {
 // Dashboard Stats API
 export const dashboardApi = {
   getStats: () =>
-    apiService.request<ApiResponse<DashboardStats>>('/dashboard/stats'),
+    apiService.request<ApiResponse<DashboardStats>>('/admins/stats'),
 };

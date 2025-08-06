@@ -5,6 +5,7 @@ import (
 	"github.com/michaelwp/student_attendance/internal/models"
 	"github.com/michaelwp/student_attendance/internal/repository"
 	"github.com/michaelwp/student_attendance/pkg"
+	"log"
 	"os"
 	"strconv"
 )
@@ -83,16 +84,26 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 // @Failure 404 {object} map[string]interface{} "Admin not found"
 // @Router /admins/{id} [get]
 func (h *adminHandler) GetByID(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
+	adminID := c.Locals("userID")
+	if adminID == nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID",
 		})
 	}
 
-	admin, err := h.adminRepo.GetByID(c.Context(), uint(id))
+	// TODO: Log the adminID for debugging purposes
+	log.Println("adminID:", adminID)
+
+	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 32)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID format",
+		})
+	}
+
+	admin, err := h.adminRepo.GetByID(c.Context(), uint(adminIDUint))
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"translate_key": "error.admin_not_found",
@@ -211,7 +222,7 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"error":         "Invalid admin ID 2",
 		})
 	}
 
@@ -255,7 +266,7 @@ func (h *adminHandler) Delete(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"error":         "Invalid admin ID 3",
 		})
 	}
 
@@ -383,7 +394,7 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
-			"error":         "Invalid admin ID",
+			"error":         "Invalid admin ID 4",
 		})
 	}
 
@@ -413,5 +424,30 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"translate_key": "success.admin_status_updated",
 		"message":       "Admin " + status + " successfully",
+	})
+}
+
+// GetStat godoc
+// @Summary Get system statistics
+// @Description Get comprehensive dashboard statistics including admins, teachers, students, classes and today's attendance
+// @Tags Admins
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Statistics retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /admins/stats [get]
+func (h *adminHandler) GetStat(c *fiber.Ctx) error {
+	stats, err := h.adminRepo.GetDashboardStats(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_stats",
+			"error":         "Failed to get statistics",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.stats_retrieved",
+		"message":       "Statistics retrieved successfully",
+		"data":          stats,
 	})
 }

@@ -10,12 +10,27 @@ import (
 )
 
 type adminRepository struct {
-	db *sql.DB
+	db             *sql.DB
+	teacherRepo    TeacherRepository
+	studentRepo    StudentRepository
+	classRepo      ClassRepository
+	attendanceRepo AttendanceRepository
 }
 
 // NewAdminRepository creates a new admin repository
 func NewAdminRepository(db *sql.DB) AdminRepository {
 	return &adminRepository{db: db}
+}
+
+// NewAdminRepositoryWithDeps creates a new admin repository with dependencies
+func NewAdminRepositoryWithDeps(db *sql.DB, teacherRepo TeacherRepository, studentRepo StudentRepository, classRepo ClassRepository, attendanceRepo AttendanceRepository) AdminRepository {
+	return &adminRepository{
+		db:             db,
+		teacherRepo:    teacherRepo,
+		studentRepo:    studentRepo,
+		classRepo:      classRepo,
+		attendanceRepo: attendanceRepo,
+	}
 }
 
 func (r *adminRepository) Create(ctx context.Context, admin *models.Admin) error {
@@ -252,7 +267,7 @@ func (r *adminRepository) GetTotalAdmins(ctx context.Context) (int, error) {
 }
 
 func (r *adminRepository) IsAdminExist(ctx context.Context, email string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM admins WHERE email = $1)`
+	query := `SELECT EXISTS(SELECT 1 FROM admins WHERE email = $1 AND is_active = true)`
 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, email).Scan(&exists)
@@ -276,4 +291,133 @@ func (r *adminRepository) GetPasswordByEmail(ctx context.Context, email string) 
 	}
 
 	return password, nil
+}
+
+func (r *adminRepository) GetStats(ctx context.Context) (*models.AdminStats, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total_admins,
+			COUNT(CASE WHEN is_active = true THEN 1 END) as active_admins,
+			COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_admins
+		FROM admins`
+
+	stats := &models.AdminStats{}
+	err := r.db.QueryRowContext(ctx, query).Scan(
+		&stats.TotalAdmins,
+		&stats.ActiveAdmins,
+		&stats.InactiveAdmins,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get admin stats: %w", err)
+	}
+
+	return stats, nil
+}
+
+func (r *adminRepository) GetDashboardStats(ctx context.Context) (*models.DashboardStats, error) {
+	dashboardStats := &models.DashboardStats{}
+
+	// Get admin stats
+	adminStats, err := r.GetStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get admin stats: %w", err)
+	}
+	dashboardStats.TotalAdmins = adminStats.TotalAdmins
+	dashboardStats.ActiveAdmins = adminStats.ActiveAdmins
+	dashboardStats.InactiveAdmins = adminStats.InactiveAdmins
+
+	// Get teacher stats (use a direct database query if teacherRepo is nil)
+	if r.teacherRepo != nil {
+		teacherStats, err := r.teacherRepo.GetStats(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get teacher stats: %w", err)
+		}
+		dashboardStats.TotalTeachers = teacherStats.TotalTeachers
+		dashboardStats.ActiveTeachers = teacherStats.ActiveTeachers
+		dashboardStats.InactiveTeachers = teacherStats.InactiveTeachers
+	} else {
+		// Direct query if teacherRepo is not available
+		query := `
+			SELECT 
+				COUNT(*) as total_teachers,
+				COUNT(CASE WHEN is_active = true THEN 1 END) as active_teachers,
+				COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_teachers
+			FROM teachers`
+		err := r.db.QueryRowContext(ctx, query).Scan(
+			&dashboardStats.TotalTeachers,
+			&dashboardStats.ActiveTeachers,
+			&dashboardStats.InactiveTeachers,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get teacher stats: %w", err)
+		}
+	}
+
+	// Get student stats (use a direct database query if studentRepo is nil)
+	if r.studentRepo != nil {
+		studentStats, err := r.studentRepo.GetStats(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get student stats: %w", err)
+		}
+		dashboardStats.TotalStudents = studentStats.TotalStudents
+		dashboardStats.ActiveStudents = studentStats.ActiveStudents
+		dashboardStats.InactiveStudents = studentStats.InactiveStudents
+	} else {
+		// Direct query if studentRepo is not available
+		query := `
+			SELECT 
+				COUNT(*) as total_students,
+				COUNT(CASE WHEN is_active = true THEN 1 END) as active_students,
+				COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_students
+			FROM students`
+		err := r.db.QueryRowContext(ctx, query).Scan(
+			&dashboardStats.TotalStudents,
+			&dashboardStats.ActiveStudents,
+			&dashboardStats.InactiveStudents,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get student stats: %w", err)
+		}
+	}
+
+	// Get total classes (use a direct database query if classRepo is nil)
+	if r.classRepo != nil {
+		totalClasses, err := r.classRepo.GetTotalClasses(ctx)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get total classes: %w", err)
+		}
+		dashboardStats.TotalClasses = totalClasses
+	} else {
+		// Direct query if classRepo is not available
+		query := `SELECT COUNT(*) FROM classes`
+		err := r.db.QueryRowContext(ctx, query).Scan(&dashboardStats.TotalClasses)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get total classes: %w", err)
+		}
+	}
+
+	// Get today's attendance stats
+	todayQuery := `
+		SELECT 
+			COUNT(*) as total_attendance_today,
+			COUNT(CASE WHEN status = 'present' THEN 1 END) as present_today,
+			COUNT(CASE WHEN status = 'absent' THEN 1 END) as absent_today,
+			COUNT(CASE WHEN status = 'late' THEN 1 END) as late_today
+		FROM attendances 
+		WHERE DATE(date) = CURRENT_DATE`
+	err = r.db.QueryRowContext(ctx, todayQuery).Scan(
+		&dashboardStats.TotalAttendanceToday,
+		&dashboardStats.PresentToday,
+		&dashboardStats.AbsentToday,
+		&dashboardStats.LateToday,
+	)
+	if err != nil {
+		// If there's no attendance today, set values to 0
+		dashboardStats.TotalAttendanceToday = 0
+		dashboardStats.PresentToday = 0
+		dashboardStats.AbsentToday = 0
+		dashboardStats.LateToday = 0
+	}
+
+	return dashboardStats, nil
 }

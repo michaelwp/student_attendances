@@ -5,6 +5,7 @@ import (
 	"github.com/michaelwp/student_attendance/internal/models"
 	"log"
 	"os"
+	"strconv"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -74,6 +75,7 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 
 	var storedPassword string
 	var errGetPassword error
+	var userID uint
 
 	// Authenticate based on a user type
 	switch loginReq.UserType {
@@ -101,6 +103,7 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 				"error":         "Authentication failed",
 			})
 		}
+
 		if !admin.IsActive {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
 				"translate_key": "error.account_deactivated",
@@ -108,6 +111,7 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 			})
 		}
 
+		userID = admin.ID
 		storedPassword, errGetPassword = h.adminRepo.GetPasswordByEmail(c.Context(), loginReq.UserID)
 
 	case models.UserTypeTeacher.String(), "teacher":
@@ -125,6 +129,24 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 				"error":         "Invalid credentials",
 			})
 		}
+
+		// Check if the teacher is active
+		teacher, err := h.teacherRepo.GetByTeacherID(c.Context(), loginReq.UserID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"translate_key": "error.authentication_failed",
+				"error":         "Authentication failed",
+			})
+		}
+
+		if !teacher.IsActive {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"translate_key": "error.account_deactivated",
+				"error":         "Account is deactivated",
+			})
+		}
+
+		userID = teacher.ID
 		storedPassword, errGetPassword = h.teacherRepo.GetPasswordByTeacherID(c.Context(), loginReq.UserID)
 
 	case models.UserTypeStudent.String():
@@ -142,6 +164,24 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 				"error":         "Invalid credentials",
 			})
 		}
+
+		// Check if the student is active
+		student, err := h.studentRepo.GetByStudentID(c.Context(), loginReq.UserID)
+		if err != nil {
+			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+				"translate_key": "error.authentication_failed",
+				"error":         "Authentication failed",
+			})
+		}
+
+		if !student.IsActive {
+			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+				"translate_key": "error.account_deactivated",
+				"error":         "Account is deactivated",
+			})
+		}
+
+		userID = student.ID
 		storedPassword, errGetPassword = h.studentRepo.GetPasswordByStudentID(c.Context(), loginReq.UserID)
 	}
 
@@ -177,7 +217,9 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 		TokenDuration: time.Hour, // 1-hour expiration
 	}
 
-	token, err := pkg.GenerateToken(loginReq.UserID, loginReq.UserType, jwtConfig)
+	strUserID := strconv.Itoa(int(userID))
+
+	token, err := pkg.GenerateToken(strUserID, loginReq.UserType, jwtConfig)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.token_generation_failed",
@@ -186,7 +228,7 @@ func (h *authHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Cache token in Redis with 1-hour expiration
-	tokenKey := "token:" + loginReq.UserType + ":" + loginReq.UserID
+	tokenKey := "token:" + loginReq.UserType + ":" + strUserID
 	err = h.redisClient.Set(context.Background(), tokenKey, token, time.Hour).Err()
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{

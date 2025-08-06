@@ -75,6 +75,8 @@
     "present": "Hadir",
     "absent": "Tidak Hadir",
     "late": "Terlambat",
+    "active": "Aktif",
+    "inactive": "Tidak Aktif",
     "quick_actions": "Aksi Cepat",
     "manage_teachers": "Kelola Guru",
     "manage_teachers_desc": "Tambah, edit, atau hapus guru",

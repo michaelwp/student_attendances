@@ -577,6 +577,31 @@ func (h *studentHandler) UpdatePassword(c *fiber.Ctx) error {
 	})
 }
 
+// GetStats godoc
+// @Summary Get student statistics
+// @Description Get statistics about students including total active and inactive counts
+// @Tags Students
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Statistics retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /students/stats [get]
+func (h *studentHandler) GetStats(c *fiber.Ctx) error {
+	stats, err := h.studentRepo.GetStats(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_student_stats",
+			"error":         "Failed to get student statistics",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.stats_retrieved",
+		"message":       "Statistics retrieved successfully",
+		"data":          stats,
+	})
+}
+
 func (h *studentHandler) updateCurrentPassword(ctx context.Context, studentID string, password string) error {
 	round, _ := strconv.Atoi(os.Getenv("SALT"))
 	hashPassword, err := pkg.HashPassword(password, round)
