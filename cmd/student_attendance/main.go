@@ -31,6 +31,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 func init() {
@@ -94,11 +95,15 @@ func main() {
 				log.Printf("[ERROR] %v\n", err)
 			}
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "internal_server_error",
+				"translate_key": "internal_server_error",
 				"error":         "Internal Server Error",
 			})
 		},
+		ReadTimeout:  30 * time.Second,
+		WriteTimeout: 30 * time.Second,
 	})
+
+	app.Static("/", "./web/dist")
 
 	// Setup routes
 	api.SetupRoutes(app, postgresClient, s3Client, s3Config, redisClient)

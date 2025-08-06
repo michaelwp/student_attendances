@@ -1,0 +1,104 @@
+{
+  "app": {
+    "title": "Student Attendance",
+    "subtitle": "Secure Login Portal"
+  },
+  "login": {
+    "title": "Sign In",
+    "userType": "User Type",
+    "userId": "User ID",
+    "password": "Password",
+    "submit": "Sign In",
+    "signingIn": "Signing In...",
+    "userTypes": {
+      "admin": "Administrator",
+      "teacher": "Teacher",
+      "student": "Student"
+    },
+    "placeholders": {
+      "admin": "Enter your email address",
+      "teacher": "Enter your teacher ID",
+      "student": "Enter your student ID",
+      "password": "Enter your password"
+    },
+    "validation": {
+      "userTypeRequired": "Please select a user type",
+      "userIdRequired": "User ID is required",
+      "passwordRequired": "Password is required",
+      "passwordMinLength": "Password must be at least 6 characters"
+    }
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "retry": "Retry",
+    "close": "Close",
+    "language": "Language",
+    "theme": "Theme"
+  },
+  "themes": {
+    "light": "Light Mode",
+    "dark": "Dark Mode",
+    "toggle": "Toggle Theme"
+  },
+  "languages": {
+    "en": "English",
+    "id": "Bahasa Indonesia",
+    "switch": "Switch Language"
+  },
+  "errors": {
+    "network_error": "Network connection failed. Please check your internet connection.",
+    "invalid_credentials": "Invalid username or password",
+    "authentication_failed": "Authentication failed. Please try again.",
+    "token_expired": "Your session has expired. Please login again.",
+    "account_deactivated": "Your account has been deactivated. Please contact administrator.",
+    "invalid_user_type": "Please select a valid user type",
+    "server_error": "Server error. Please try again later.",
+    "unknown": "An unknown error occurred. Please try again."
+  },
+  "success": {
+    "login_successful": "Login successful! Redirecting...",
+    "logout_successful": "Logout successful"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "admin": "Administrator",
+    "overview": "Here's what's happening in your school today",
+    "stats": {
+      "total_teachers": "Total Teachers",
+      "total_students": "Total Students",
+      "total_classes": "Total Classes",
+      "total_admins": "Total Admins"
+    },
+    "today_attendance": "Today's Attendance",
+    "present": "Present",
+    "absent": "Absent",
+    "late": "Late",
+    "quick_actions": "Quick Actions",
+    "manage_teachers": "Manage Teachers",
+    "manage_teachers_desc": "Add, edit, or remove teachers",
+    "manage_students": "Manage Students",
+    "manage_students_desc": "Add, edit, or remove students",
+    "manage_classes": "Manage Classes",
+    "manage_classes_desc": "Create and manage classes",
+    "attendance": "Attendance",
+    "attendance_desc": "Track and manage attendance"
+  },
+  "menu": {
+    "dashboard": "Dashboard",
+    "teachers": "Teachers",
+    "students": "Students",
+    "classes": "Classes",
+    "attendance": "Attendance",
+    "admins": "Admins"
+  },
+  "button": {
+    "change_language": "Change Language",
+    "toggle_dark_mode": "Toggle Dark Mode",
+    "logout": "Logout"
+  },
+  "error": {
+    "failed_to_load": "Failed to load data"
+  }
+}

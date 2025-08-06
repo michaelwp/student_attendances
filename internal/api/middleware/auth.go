@@ -18,7 +18,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		authHeader := c.Get("Authorization")
 		if authHeader == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_required",
+				"translate_key": "error.token_required",
 				"error":         "Authorization token is required",
 			})
 		}
@@ -26,7 +26,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		// Check if the token starts with "Bearer"
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_token_format",
+				"translate_key": "error.invalid_token_format",
 				"error":         "Token must be in format: Bearer <token>",
 			})
 		}
@@ -35,7 +35,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		token := strings.TrimPrefix(authHeader, "Bearer ")
 		if token == "" {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_required",
+				"translate_key": "error.token_required",
 				"error":         "Authorization token is required",
 			})
 		}
@@ -44,7 +44,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		jwtSecret := os.Getenv("JWT_SECRET")
 		if jwtSecret == "" {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-				"translate.key": "error.jwt_secret_missing",
+				"translate_key": "error.jwt_secret_missing",
 				"error":         "JWT secret not configured",
 			})
 		}
@@ -57,7 +57,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		claims, err := pkg.ValidateToken(token, jwtConfig)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_token",
+				"translate_key": "error.invalid_token",
 				"error":         "Invalid or expired token",
 			})
 		}
@@ -67,7 +67,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		cachedToken, err := redisClient.Get(context.Background(), tokenKey).Result()
 		if err != nil || cachedToken != token {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_not_found",
+				"translate_key": "error.token_not_found",
 				"error":         "Token not found or expired",
 			})
 		}
@@ -77,7 +77,7 @@ func JWTMiddleware(redisClient *redis.Client) fiber.Handler {
 			// Remove expired token from Redis
 			redisClient.Del(context.Background(), tokenKey)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_expired",
+				"translate_key": "error.token_expired",
 				"error":         "Token has expired",
 			})
 		}
@@ -103,7 +103,7 @@ func OptionalJWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		// Token provided, validate it
 		if !strings.HasPrefix(authHeader, "Bearer ") {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_token_format",
+				"translate_key": "error.invalid_token_format",
 				"error":         "Token must be in format: Bearer <token>",
 			})
 		}
@@ -126,7 +126,7 @@ func OptionalJWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		claims, err := pkg.ValidateToken(token, jwtConfig)
 		if err != nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.invalid_token",
+				"translate_key": "error.invalid_token",
 				"error":         "Invalid or expired token",
 			})
 		}
@@ -136,7 +136,7 @@ func OptionalJWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		cachedToken, err := redisClient.Get(context.Background(), tokenKey).Result()
 		if err != nil || cachedToken != token {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_not_found",
+				"translate_key": "error.token_not_found",
 				"error":         "Token not found or expired",
 			})
 		}
@@ -145,7 +145,7 @@ func OptionalJWTMiddleware(redisClient *redis.Client) fiber.Handler {
 		if time.Now().After(claims.ExpiresAt.Time) {
 			redisClient.Del(context.Background(), tokenKey)
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.token_expired",
+				"translate_key": "error.token_expired",
 				"error":         "Token has expired",
 			})
 		}
@@ -165,7 +165,7 @@ func RequireUserType(allowedTypes ...string) fiber.Handler {
 		userType := c.Locals("userType")
 		if userType == nil {
 			return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-				"translate.key": "error.authentication_required",
+				"translate_key": "error.authentication_required",
 				"error":         "Authentication required",
 			})
 		}
@@ -178,7 +178,7 @@ func RequireUserType(allowedTypes ...string) fiber.Handler {
 		}
 
 		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{
-			"translate.key": "error.insufficient_permissions",
+			"translate_key": "error.insufficient_permissions",
 			"error":         "Insufficient permissions for this operation",
 		})
 	}
