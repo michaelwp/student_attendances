@@ -22,6 +22,7 @@ type TeacherRepository interface {
 	UpdatePassword(ctx context.Context, teacherID string, password string) error
 	GetPasswordByTeacherID(ctx context.Context, teacherID string) (string, error)
 	IsTeacherExist(ctx context.Context, teacherID string) (bool, error)
+	GetStats(ctx context.Context) (*models.TeacherStats, error)
 }
 
 // ClassRepository defines the interface for class operations
@@ -32,6 +33,7 @@ type ClassRepository interface {
 	GetByTeacher(ctx context.Context, teacherID string) ([]*models.Class, error)
 	Update(ctx context.Context, class *models.Class) error
 	Delete(ctx context.Context, id uint) error
+	GetTotalClasses(ctx context.Context) (int, error)
 }
 
 // StudentRepository defines the interface for student operations
@@ -50,6 +52,7 @@ type StudentRepository interface {
 	UpdatePassword(ctx context.Context, studentID string, password string) error
 	GetPasswordByStudentID(ctx context.Context, studentID string) (string, error)
 	IsStudentExist(ctx context.Context, studentID string) (bool, error)
+	GetStats(ctx context.Context) (*models.StudentStats, error)
 }
 
 // AttendanceRepository defines the interface for attendance operations
@@ -90,6 +93,8 @@ type AdminRepository interface {
 	GetTotalAdmins(ctx context.Context) (int, error)
 	IsAdminExist(ctx context.Context, email string) (bool, error)
 	GetPasswordByEmail(ctx context.Context, email string) (string, error)
+	GetStats(ctx context.Context) (*models.AdminStats, error)
+	GetDashboardStats(ctx context.Context) (*models.DashboardStats, error)
 }
 
 // Repositories aggregates all repository interfaces

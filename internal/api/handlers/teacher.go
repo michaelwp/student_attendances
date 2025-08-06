@@ -384,7 +384,6 @@ func (h *teacherHandler) GetPhoto(c *fiber.Ctx) error {
 	})
 }
 
-// ResetPassword godoc
 // @Summary Reset teacher password
 // @Description Reset a teacher's password
 // @Tags Teachers
@@ -526,6 +525,31 @@ func (h *teacherHandler) UpdatePassword(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"translate_key": "success.password.updated",
 		"message":       "Password updated successfully",
+	})
+}
+
+// GetStats godoc
+// @Summary Get teacher statistics
+// @Description Get various statistics about teachers in the system
+// @Tags Teachers
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{} "Statistics retrieved successfully"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /teachers/stats [get]
+func (h *teacherHandler) GetStats(c *fiber.Ctx) error {
+	stats, err := h.teacherRepo.GetStats(c.Context())
+	if err != nil {
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_teacher_stats",
+			"error":         "Failed to get teacher statistics",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.stats_retrieved",
+		"message":       "Statistics retrieved successfully",
+		"data":          stats,
 	})
 }
 

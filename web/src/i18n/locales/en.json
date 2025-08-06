@@ -75,6 +75,8 @@
     "present": "Present",
     "absent": "Absent",
     "late": "Late",
+    "active": "Active",
+    "inactive": "Inactive",
     "quick_actions": "Quick Actions",
     "manage_teachers": "Manage Teachers",
     "manage_teachers_desc": "Add, edit, or remove teachers",

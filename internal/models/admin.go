@@ -12,6 +12,12 @@ type Admin struct {
 	UpdatedAt time.Time  `json:"updated_at" db:"updated_at"`
 }
 
+type AdminStats struct {
+	TotalAdmins    int `json:"total_admins" db:"total_admins"`
+	ActiveAdmins   int `json:"active_admins" db:"active_admins"`
+	InactiveAdmins int `json:"inactive_admins" db:"inactive_admins"`
+}
+
 func (Admin) TableName() string {
 	return "admins"
 }

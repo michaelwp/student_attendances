@@ -138,10 +138,25 @@ export interface PhotoUrlResponse {
 
 // Statistics for dashboard
 export interface DashboardStats {
-  total_teachers: number;
-  total_students: number;
-  total_classes: number;
+  // Admin stats
   total_admins: number;
+  active_admins: number;
+  inactive_admins: number;
+  
+  // Teacher stats
+  total_teachers: number;
+  active_teachers: number;
+  inactive_teachers: number;
+  
+  // Student stats
+  total_students: number;
+  active_students: number;
+  inactive_students: number;
+  
+  // Class stats
+  total_classes: number;
+  
+  // Today's attendance
   total_attendance_today?: number;
   present_today?: number;
   absent_today?: number;
