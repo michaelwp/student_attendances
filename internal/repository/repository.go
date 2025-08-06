@@ -12,5 +12,6 @@ func NewRepositories(db *sql.DB) *Repositories {
 		Student:       NewStudentRepository(db),
 		Attendance:    NewAttendanceRepository(db),
 		AbsentRequest: NewAbsentRequestRepository(db),
+		Admin:         NewAdminRepository(db),
 	}
 }

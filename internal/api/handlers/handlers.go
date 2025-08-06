@@ -22,5 +22,6 @@ func NewHandlers(dep *HandlerDependencies) *Handlers {
 		Student:       NewStudentHandler(dep.Repositories.Student, dep.S3Client, dep.S3Config),
 		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance),
 		AbsentRequest: NewAbsentRequestHandler(dep.Repositories.AbsentRequest),
+		Admin:         NewAdminHandler(dep.Repositories.Admin),
 	}
 }

@@ -111,4 +111,15 @@ func SetupRoutes(
 	absentRequests.Get("/pending", h.AbsentRequest.GetPending)
 	absentRequests.Patch("/:id/status", h.AbsentRequest.UpdateStatus)
 	absentRequests.Delete("/:id", h.AbsentRequest.Delete)
+
+	// Admin routes
+	admins := api.Group("/admins")
+	admins.Post("/", h.Admin.Create)
+	admins.Get("/", h.Admin.GetAll)
+	admins.Get("/:id", h.Admin.GetByID)
+	admins.Get("/email/:email", h.Admin.GetByEmail)
+	admins.Put("/:id", h.Admin.Update)
+	admins.Delete("/:id", h.Admin.Delete)
+	admins.Put("/:id/password", h.Admin.UpdatePassword)
+	admins.Put("/:id/status", h.Admin.SetActiveStatus)
 }
