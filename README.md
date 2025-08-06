@@ -133,10 +133,43 @@ The application follows clean architecture principles with clear separation of c
 - Development: `http://localhost:8080`
 - All API endpoints are prefixed with `/api/v1`
 
-### Health Check
+### 🚨 **IMPORTANT: Authentication Required for All Endpoints** 
+
+**ALL API endpoints require valid JWT authentication except for:**
+- `GET /health` (Health check)
+- `POST /api/v1/auth/login` (Login)
+
+### 🔒 **Authentication Required**
+**IMPORTANT**: All API endpoints require authentication (JWT token) except for:
+- `GET /health` - Health check endpoint
+- `POST /api/v1/auth/login` - User login endpoint
+
+**Authentication Methods**: Include JWT token via:
+- **Authorization Header**: `Authorization: Bearer <token>`
+- **HTTP-Only Cookie**: Automatically set after login
+
+### 🛡️ **Role-Based Access Control**
+The API implements role-based access control with three user types:
+
+| User Type | Access Level | Can Access |
+|-----------|-------------|------------|
+| **Admin** | Full Access | All endpoints including admin management |
+| **Teacher** | Limited | Teachers, Classes, Students, Attendances, Absent Requests |
+| **Student** | Restricted | Limited access to Students, Attendances, Absent Requests |
+
+**Special Restrictions:**
+- **Admin endpoints** (`/admins/*`) - Admin authentication required
+- **Absent Request endpoints** (`/absent-requests/*`) - Student or Teacher authentication required
+- **All other endpoints** - Any authenticated user can access
+
+### Public Endpoints (No Authentication Required)
 - `GET /health` - Check API health status
 
-### Teachers
+### Authentication Endpoints
+- `POST /api/v1/auth/login` - User login (admin, teacher, or student) - Returns JWT token
+- `POST /api/v1/auth/logout` - User logout (requires authentication) - Invalidates JWT token
+
+### Teachers (🔒 Authentication Required)
 - `POST /api/v1/teachers` - Create a new teacher
 - `GET /api/v1/teachers` - Get all teachers (paginated)
 - `GET /api/v1/teachers/{id}` - Get teacher by database ID
@@ -148,7 +181,7 @@ The application follows clean architecture principles with clear separation of c
 - `PUT /api/v1/teachers/teacher-id/{teacherId}/reset-password` - Reset teacher password (generates new password)
 - `PUT /api/v1/teachers/teacher-id/{teacherId}/password` - Update teacher password (user provides old and new password)
 
-### Classes
+### Classes (🔒 Authentication Required)
 - `POST /api/v1/classes` - Create a new class
 - `GET /api/v1/classes` - Get all classes (paginated)
 - `GET /api/v1/classes/{id}` - Get class by ID
@@ -156,7 +189,7 @@ The application follows clean architecture principles with clear separation of c
 - `PUT /api/v1/classes/{id}` - Update class
 - `DELETE /api/v1/classes/{id}` - Delete class
 
-### Students
+### Students (🔒 Authentication Required)
 - `POST /api/v1/students` - Create a new student
 - `GET /api/v1/students` - Get all students (paginated)
 - `GET /api/v1/students/{id}` - Get student by database ID
@@ -169,7 +202,7 @@ The application follows clean architecture principles with clear separation of c
 - `PUT /api/v1/students/student-id/{studentId}/reset-password` - Reset student password (generates new password)
 - `PUT /api/v1/students/student-id/{studentId}/password` - Update student password (user provides old and new password)
 
-### Attendances
+### Attendances (🔒 Authentication Required)
 - `POST /api/v1/attendances` - Create attendance record
 - `GET /api/v1/attendances/{id}` - Get attendance by ID
 - `GET /api/v1/attendances/student-id/{studentId}` - Get attendance by student
@@ -178,7 +211,7 @@ The application follows clean architecture principles with clear separation of c
 - `PUT /api/v1/attendances/{id}` - Update attendance record
 - `DELETE /api/v1/attendances/{id}` - Delete attendance record
 
-### Absent Requests
+### Absent Requests (🔒 Authentication Required - Student/Teacher Only)
 - `POST /api/v1/absent-requests` - Create absence request
 - `GET /api/v1/absent-requests/{id}` - Get absent request by ID
 - `GET /api/v1/absent-requests/student-id/{studentId}` - Get requests by student
@@ -187,7 +220,7 @@ The application follows clean architecture principles with clear separation of c
 - `PATCH /api/v1/absent-requests/{id}/status` - Update request status
 - `DELETE /api/v1/absent-requests/{id}` - Delete absent request
 
-### Admins
+### Admins (🔒 Authentication Required - Admin Only)
 - `POST /api/v1/admins` - Create a new admin
 - `GET /api/v1/admins` - Get all admins (paginated)
 - `GET /api/v1/admins/{id}` - Get admin by database ID
@@ -294,6 +327,51 @@ The application follows clean architecture principles with clear separation of c
 - `is_active: true`: Admin account is active and can log in
 - `is_active: false`: Admin account is deactivated and cannot log in
 
+### Authentication Models
+
+#### Login Request
+```json
+{
+  "user_type": "admin",
+  "user_id": "admin@school.com",
+  "password": "securepassword123"
+}
+```
+
+**User Type Options:**
+- `admin`: Use email as user_id
+- `teacher`: Use teacher_id as user_id
+- `student`: Use student_id as user_id
+
+#### Login Response
+```json
+{
+  "translate.key": "success.login_successful",
+  "message": "Login successful",
+  "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "user_type": "admin",
+  "user_id": "admin@school.com",
+  "expires_at": 1640995200
+}
+```
+
+**Additional Response Headers:**
+- `Set-Cookie`: Secure HTTP-only cookie containing the JWT token
+  - `HttpOnly=true` - Cannot be accessed by JavaScript
+  - `Secure=true` - Only transmitted over HTTPS
+  - `SameSite=Strict` - CSRF protection
+  - `Expires` - Same as token expiration (1 hour)
+
+#### JWT Token Claims
+```json
+{
+  "user_id": "admin@school.com",
+  "user_type": "admin",
+  "exp": 1640995200,
+  "iat": 1640991600
+}
+```
+
 ## Development Commands
 
 The project includes a Makefile with useful development commands:
@@ -373,10 +451,65 @@ make swagger
 
 ### Example API Calls
 
-#### Create a Teacher
+⚠️ **Note**: All examples below (except login) require authentication. Include your JWT token in requests.
+
+#### Authentication Examples
+
+#### Admin Login
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "admin",
+    "user_id": "admin@school.com",
+    "password": "securepassword123"
+  }'
+```
+
+#### Teacher Login
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "teacher",
+    "user_id": "TCH001",
+    "password": "securepassword123"
+  }'
+```
+
+#### Student Login
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "student",
+    "user_id": "STU001",
+    "password": "securepassword123"
+  }'
+```
+
+#### Logout (Requires Authentication)
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/logout \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+```
+
+#### Using Authentication for Protected Requests
+```bash
+# Method 1: Using Authorization Header
+curl -X GET http://localhost:8080/api/v1/teachers \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN_HERE"
+
+# Method 2: Using HTTP-Only Cookie (automatically set after login)
+curl -X GET http://localhost:8080/api/v1/teachers \
+  --cookie-jar cookies.txt --cookie cookies.txt
+```
+
+#### Create a Teacher (🔒 Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/teachers \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "teacher_id": "TCH001",
     "first_name": "John",
@@ -387,10 +520,11 @@ curl -X POST http://localhost:8080/api/v1/teachers \
   }'
 ```
 
-#### Create a Class
+#### Create a Class (🔒 Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/classes \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "name": "Grade 10A",
     "homeroom_teacher": "TCH001",
@@ -398,10 +532,11 @@ curl -X POST http://localhost:8080/api/v1/classes \
   }'
 ```
 
-#### Create a Student
+#### Create a Student (🔒 Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/students \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "student_id": "STU001",
     "classes_id": 1,
@@ -413,10 +548,11 @@ curl -X POST http://localhost:8080/api/v1/students \
   }'
 ```
 
-#### Record Attendance
+#### Record Attendance (🔒 Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/attendances \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "student_id": "STU001",
     "class_id": 1,
@@ -426,10 +562,11 @@ curl -X POST http://localhost:8080/api/v1/attendances \
   }'
 ```
 
-#### Create Absence Request
+#### Create Absence Request (🔒 Student/Teacher Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/absent-requests \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "student_id": "STU001",
     "class_id": 1,
@@ -499,10 +636,11 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
   }'
 ```
 
-#### Create an Admin
+#### Create an Admin (🔒 Admin Authentication Required)
 ```bash
 curl -X POST http://localhost:8080/api/v1/admins \
   -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
   -d '{
     "email": "admin@school.com",
     "password": "securepassword123",
@@ -773,6 +911,165 @@ curl -X PUT http://localhost:8080/api/v1/admins/1/status \
 - Account activation/deactivation controls
 - Password update requires current password verification
 - Admin existence validation before operations
+
+## Authentication & Authorization
+
+The API provides comprehensive JWT-based authentication for three user types: admin, teacher, and student.
+
+### Features
+- **JWT Token Authentication**: Secure token-based authentication with 1-hour expiration
+- **Multi-User Type Support**: Admin, teacher, and student authentication with different credentials
+- **Redis Token Caching**: Tokens are cached in Redis for fast validation and logout functionality
+- **Automatic Token Expiration**: Tokens expire after 1 hour for enhanced security
+- **Role-Based Access**: Different user types have different access levels
+- **Secure HTTP-Only Cookies**: Tokens are also stored in secure HTTP-only cookies
+- **Dual Authentication Support**: Both Bearer tokens and cookies are supported
+- **Secure Logout**: Token invalidation through Redis cache removal and cookie clearing
+
+### Authentication Flow
+1. **Login**: User provides user_type, user_id, and password
+2. **Validation**: System validates credentials based on user type:
+   - Admin: Uses email and password from admins table
+   - Teacher: Uses teacher_id and password from teachers table
+   - Student: Uses student_id and password from students table
+3. **Token Generation**: JWT token is generated with user information and 1-hour expiration
+4. **Redis Caching**: Token is cached in Redis with expiration
+5. **Cookie Setting**: Secure HTTP-only cookie is set with the token
+6. **Role Assignment**: User role is embedded in JWT claims for access control
+7. **Response**: Client receives JWT token in both response body and secure cookie
+
+### Using Authentication
+
+#### Login Process
+```bash
+# Admin login (use email as user_id)
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "admin",
+    "user_id": "admin@school.com", 
+    "password": "password123"
+  }'
+
+# Teacher login (use teacher_id as user_id)
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "teacher",
+    "user_id": "TCH001",
+    "password": "password123"
+  }'
+
+# Student login (use student_id as user_id)
+curl -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_type": "student", 
+    "user_id": "STU001",
+    "password": "password123"
+  }'
+```
+
+#### Using JWT Tokens
+There are two ways to authenticate with the API:
+
+**Method 1: Authorization Header (Bearer Token)**
+```bash
+curl -X GET http://localhost:8080/api/v1/teachers \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+```
+
+**Method 2: HTTP-Only Cookie (Automatic)**
+```bash
+# Cookie is automatically included in subsequent requests after login
+curl -X GET http://localhost:8080/api/v1/teachers \
+  --cookie-jar cookies.txt --cookie cookies.txt
+```
+
+#### Logout
+Logout works with either authentication method:
+
+**With Bearer Token:**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/logout \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+**With Cookie:**
+```bash
+curl -X POST http://localhost:8080/api/v1/auth/logout \
+  --cookie-jar cookies.txt --cookie cookies.txt
+```
+
+**Note**: Logout clears both the Redis cache and the HTTP-only cookie for complete session termination.
+
+### Token Structure
+JWT tokens contain the following claims:
+- `user_id`: The user's identifier (email for admin, teacher_id for teacher, student_id for student)
+- `user_type`: The type of user (admin, teacher, student)
+- `exp`: Token expiration timestamp
+- `iat`: Token issued at timestamp
+
+### Middleware Features
+The authentication middleware provides:
+- **JWTMiddleware**: Requires valid JWT token for all protected routes
+- **OptionalJWTMiddleware**: Validates token if provided, continues without if not
+- **RequireUserType**: Restricts access to specific user types (Admin, Teacher, Student)
+
+**Middleware Implementation:**
+- All API route groups use `JWTMiddleware` for authentication
+- Admin routes additionally use `RequireUserType("admin")` 
+- Absent Request routes use `RequireUserType("student", "teacher")`
+
+### Security Considerations
+- Tokens are cached in Redis and validated on each request
+- Expired tokens are automatically removed from Redis
+- Admin accounts can be deactivated, preventing login even with valid passwords
+- All passwords are hashed with bcrypt before storage
+- Token expiration is enforced both in JWT claims and Redis cache
+- HTTP-only cookies prevent XSS attacks by making tokens inaccessible to JavaScript
+- Secure flag ensures cookies are only transmitted over HTTPS
+- SameSite=Strict prevents CSRF attacks
+- Logout immediately invalidates tokens by removing them from Redis and clearing cookies
+
+### Authentication Error Responses
+
+#### Missing Authentication
+```json
+{
+  "translate.key": "error.token_required",
+  "error": "Authorization token is required"
+}
+```
+
+#### Invalid Token Format
+```json
+{
+  "translate.key": "error.invalid_token_format", 
+  "error": "Token must be in format: Bearer <token>"
+}
+```
+
+#### Expired Token
+```json
+{
+  "translate.key": "error.token_expired",
+  "error": "Token has expired"
+}
+```
+
+#### Insufficient Permissions
+```json
+{
+  "translate.key": "error.insufficient_permissions",
+  "error": "Insufficient permissions for this operation"
+}
+```
+
+**Common HTTP Status Codes:**
+- `401 Unauthorized`: Missing, invalid, or expired token
+- `403 Forbidden`: Token valid but insufficient permissions for the endpoint
+- `200 OK`: Successful authentication and authorized access
 
 ## Security Features
 

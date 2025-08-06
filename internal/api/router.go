@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
+	"github.com/michaelwp/student_attendance/internal/models"
 	"github.com/redis/go-redis/v9"
 
 	"github.com/gofiber/fiber/v2"
@@ -11,6 +12,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	_ "github.com/michaelwp/student_attendance/docs"
 	"github.com/michaelwp/student_attendance/internal/api/handlers"
+	"github.com/michaelwp/student_attendance/internal/api/middleware"
 	"github.com/michaelwp/student_attendance/internal/repository"
 	fiberSwagger "github.com/swaggo/fiber-swagger"
 )
@@ -57,7 +59,7 @@ func SetupRoutes(
 	api := app.Group("/api/v1")
 
 	// Teacher routes
-	teachers := api.Group("/teachers")
+	teachers := api.Group("/teachers", middleware.JWTMiddleware(redisClient))
 	teachers.Post("/", h.Teacher.Create)
 	teachers.Get("/", h.Teacher.GetAll)
 	teachers.Get("/:id", h.Teacher.GetByID)
@@ -70,7 +72,7 @@ func SetupRoutes(
 	teachers.Put("/teacher-id/:teacherId/password", h.Student.UpdatePassword)
 
 	// Class routes
-	classes := api.Group("/classes")
+	classes := api.Group("/classes", middleware.JWTMiddleware(redisClient))
 	classes.Post("/", h.Class.Create)
 	classes.Get("/", h.Class.GetAll)
 	classes.Get("/:id", h.Class.GetByID)
@@ -79,7 +81,7 @@ func SetupRoutes(
 	classes.Delete("/:id", h.Class.Delete)
 
 	// Student routes
-	students := api.Group("/students")
+	students := api.Group("/students", middleware.JWTMiddleware(redisClient))
 	students.Post("/", h.Student.Create)
 	students.Get("/", h.Student.GetAll)
 	students.Get("/:id", h.Student.GetByID)
@@ -93,7 +95,7 @@ func SetupRoutes(
 	students.Put("/student-id/:studentId/password", h.Student.UpdatePassword)
 
 	// Attendance routes
-	attendances := api.Group("/attendances")
+	attendances := api.Group("/attendances", middleware.JWTMiddleware(redisClient))
 	attendances.Post("/", h.Attendance.Create)
 	attendances.Get("/:id", h.Attendance.GetByID)
 	attendances.Get("/student-id/:studentId", h.Attendance.GetByStudent)
@@ -103,7 +105,12 @@ func SetupRoutes(
 	attendances.Delete("/:id", h.Attendance.Delete)
 
 	// Absent Request routes
-	absentRequests := api.Group("/absent-requests")
+	absentRequests := api.Group("/absent-requests",
+		middleware.JWTMiddleware(redisClient),
+		middleware.RequireUserType(
+			models.UserTypeStudent.String(),
+			models.UserTypeTeacher.String()),
+	)
 	absentRequests.Post("/", h.AbsentRequest.Create)
 	absentRequests.Get("/:id", h.AbsentRequest.GetByID)
 	absentRequests.Get("/student-id/:studentId", h.AbsentRequest.GetByStudent)
@@ -113,7 +120,10 @@ func SetupRoutes(
 	absentRequests.Delete("/:id", h.AbsentRequest.Delete)
 
 	// Admin routes
-	admins := api.Group("/admins")
+	admins := api.Group("/admins",
+		middleware.JWTMiddleware(redisClient),
+		middleware.RequireUserType(models.UserTypeAdmin.String()),
+	)
 	admins.Post("/", h.Admin.Create)
 	admins.Get("/", h.Admin.GetAll)
 	admins.Get("/:id", h.Admin.GetByID)
@@ -122,4 +132,9 @@ func SetupRoutes(
 	admins.Delete("/:id", h.Admin.Delete)
 	admins.Put("/:id/password", h.Admin.UpdatePassword)
 	admins.Put("/:id/status", h.Admin.SetActiveStatus)
+
+	// Authentication routes
+	auth := api.Group("/auth")
+	auth.Post("/login", h.Auth.Login)
+	auth.Post("/logout", middleware.JWTMiddleware(redisClient), h.Auth.Logout)
 }

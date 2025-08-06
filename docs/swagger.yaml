@@ -127,6 +127,23 @@ definitions:
       updated_at:
         type: string
     type: object
+  internal_api_handlers.LoginRequest:
+    properties:
+      password:
+        type: string
+      user_id:
+        type: string
+      user_type:
+        enum:
+        - admin
+        - teacher
+        - student
+        type: string
+    required:
+    - password
+    - user_id
+    - user_type
+    type: object
 info:
   contact: {}
 paths:
@@ -927,6 +944,73 @@ paths:
       summary: Get attendance by student
       tags:
       - Attendances
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      description: Authenticate user and return JWT token. For admin use email as
+        user_id, for teacher/student use their respective IDs
+      parameters:
+      - description: Login credentials
+        in: body
+        name: login
+        required: true
+        schema:
+          $ref: '#/definitions/internal_api_handlers.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Login successful
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: User login
+      tags:
+      - Authentication
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      description: Logout user and invalidate JWT token
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Logout successful
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Authentication required
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: User logout
+      tags:
+      - Authentication
   /classes:
     get:
       consumes:
