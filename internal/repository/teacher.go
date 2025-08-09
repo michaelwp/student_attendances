@@ -41,8 +41,8 @@ func (r *teacherRepository) Create(ctx context.Context, teacher *models.Teacher)
 
 func (r *teacherRepository) GetByID(ctx context.Context, id uint) (*models.Teacher, error) {
 	query := `
-		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at
-		FROM teachers WHERE id = $1`
+		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
+		FROM teachers WHERE id = $1 AND deleted_at IS NULL`
 
 	teacher := &models.Teacher{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -55,6 +55,7 @@ func (r *teacherRepository) GetByID(ctx context.Context, id uint) (*models.Teach
 		&teacher.Password,
 		&teacher.CreatedAt,
 		&teacher.UpdatedAt,
+		&teacher.IsActive,
 	)
 
 	if err != nil {
@@ -69,8 +70,8 @@ func (r *teacherRepository) GetByID(ctx context.Context, id uint) (*models.Teach
 
 func (r *teacherRepository) GetByTeacherID(ctx context.Context, teacherID string) (*models.Teacher, error) {
 	query := `
-		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at
-		FROM teachers WHERE teacher_id = $1`
+		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
+		FROM teachers WHERE teacher_id = $1 AND deleted_at IS NULL`
 
 	teacher := &models.Teacher{}
 	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(
@@ -83,6 +84,7 @@ func (r *teacherRepository) GetByTeacherID(ctx context.Context, teacherID string
 		&teacher.Password,
 		&teacher.CreatedAt,
 		&teacher.UpdatedAt,
+		&teacher.IsActive,
 	)
 
 	if err != nil {
@@ -97,7 +99,7 @@ func (r *teacherRepository) GetByTeacherID(ctx context.Context, teacherID string
 
 func (r *teacherRepository) GetByEmail(ctx context.Context, email string) (*models.Teacher, error) {
 	query := `
-		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at
+		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
 		FROM teachers WHERE email = $1`
 
 	teacher := &models.Teacher{}
@@ -111,6 +113,7 @@ func (r *teacherRepository) GetByEmail(ctx context.Context, email string) (*mode
 		&teacher.Password,
 		&teacher.CreatedAt,
 		&teacher.UpdatedAt,
+		&teacher.IsActive,
 	)
 
 	if err != nil {
@@ -125,8 +128,17 @@ func (r *teacherRepository) GetByEmail(ctx context.Context, email string) (*mode
 
 func (r *teacherRepository) GetAll(ctx context.Context, limit, offset int) ([]*models.Teacher, error) {
 	query := `
-		SELECT id, teacher_id, first_name, last_name, email, phone, password, created_at, updated_at
+		SELECT id
+		     , teacher_id
+		     , first_name
+		     , last_name
+		     , email, phone
+		     , password
+		     , created_at
+		     , updated_at
+			 , is_active
 		FROM teachers
+		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -149,6 +161,7 @@ func (r *teacherRepository) GetAll(ctx context.Context, limit, offset int) ([]*m
 			&teacher.Password,
 			&teacher.CreatedAt,
 			&teacher.UpdatedAt,
+			&teacher.IsActive,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan teacher: %w", err)
@@ -245,7 +258,7 @@ func (r *teacherRepository) GetPhotoPath(ctx context.Context, id uint) (string, 
 }
 
 func (r *teacherRepository) GetTotalTeachers(ctx context.Context) (int, error) {
-	query := `SELECT COUNT(*) FROM teachers`
+	query := `SELECT COUNT(*) FROM teachers WHERE deleted_at IS NULL`
 
 	var count int
 	err := r.db.QueryRowContext(ctx, query).Scan(&count)
@@ -291,7 +304,7 @@ func (r *teacherRepository) GetPasswordByTeacherID(ctx context.Context, teacherI
 }
 
 func (r *teacherRepository) IsTeacherExist(ctx context.Context, teacherID string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM teachers WHERE teacher_id = $1 AND is_active = true)`
+	query := `SELECT EXISTS(SELECT 1 FROM teachers WHERE teacher_id = $1)`
 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(&exists)
@@ -308,7 +321,9 @@ func (r *teacherRepository) GetStats(ctx context.Context) (*models.TeacherStats,
 			COUNT(*) as total_teachers,
 			COUNT(CASE WHEN is_active = true THEN 1 END) as active_teachers,
 			COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_teachers
-		FROM teachers`
+		FROM teachers
+		WHERE deleted_at IS NULL
+		`
 
 	stats := &models.TeacherStats{}
 	err := r.db.QueryRowContext(ctx, query).Scan(
@@ -321,4 +336,23 @@ func (r *teacherRepository) GetStats(ctx context.Context) (*models.TeacherStats,
 	}
 
 	return stats, nil
+}
+
+func (r *teacherRepository) UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error {
+	query := `
+		UPDATE teachers 
+		SET deleted_at = NOW(), deleted_by = $2
+		WHERE id = $1
+		RETURNING deleted_at`
+
+	var deletedAt string
+	err := r.db.QueryRowContext(ctx, query, id, deletedBy).Scan(&deletedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("teacher not found")
+		}
+		return fmt.Errorf("failed to update teacher delete info: %w", err)
+	}
+
+	return nil
 }

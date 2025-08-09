@@ -52,6 +52,8 @@ type AttendanceHandler interface {
 	GetByDateRange(c *fiber.Ctx) error
 	Update(c *fiber.Ctx) error
 	Delete(c *fiber.Ctx) error
+	MarkAttendance(c *fiber.Ctx) error
+	GetAll(c *fiber.Ctx) error
 }
 
 // AbsentRequestHandler defines the interface for absent request API operations
@@ -76,6 +78,7 @@ type AdminHandler interface {
 	UpdatePassword(c *fiber.Ctx) error
 	SetActiveStatus(c *fiber.Ctx) error
 	GetStat(c *fiber.Ctx) error
+	ResetPassword(c *fiber.Ctx) error
 }
 
 type AuthHandler interface {

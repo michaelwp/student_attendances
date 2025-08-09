@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"context"
-	"github.com/michaelwp/student_attendance/internal/models"
 	"log"
 	"os"
 	"strconv"
 	"time"
+
+	"github.com/michaelwp/student_attendance/internal/models"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/michaelwp/student_attendance/internal/repository"

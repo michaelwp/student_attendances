@@ -5,7 +5,7 @@ import "time"
 type Admin struct {
 	ID        uint       `json:"id" db:"id"`
 	Email     string     `json:"email" db:"email"`
-	Password  string     `json:"-" db:"password"`
+	Password  string     `json:"password" db:"password"`
 	LastLogin *time.Time `json:"last_login" db:"last_login"`
 	IsActive  bool       `json:"is_active" db:"is_active"`
 	CreatedAt time.Time  `json:"created_at" db:"created_at"`

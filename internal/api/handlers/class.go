@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
@@ -201,21 +202,44 @@ func (h *classHandler) Update(c *fiber.Ctx) error {
 // @Failure 500 {object} map[string]interface{} "Internal server error"
 // @Router /classes/{id} [delete]
 func (h *classHandler) Delete(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Invalid class ID",
+	currentUserID := c.Locals("userID")
+	if currentUserID == nil {
+		log.Println("error: unauthorized access, userID not found in context")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.unauthorized",
+			"error":         "Unauthorized access",
 		})
 	}
 
-	if err := h.classRepo.Delete(c.Context(), uint(id)); err != nil {
+	currentUserIDUint, err := strconv.ParseUint(currentUserID.(string), 10, 64)
+	if err != nil {
+		log.Println("error converting current user ID to int:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error": "Failed to delete class",
+			"translate_key": "error.invalid_current_user_id",
+			"error":         "Invalid current user ID",
+		})
+	}
+
+	idParam := c.Params("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		log.Println("error parsing class ID:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_class_id",
+			"error":         "Invalid class ID",
+		})
+	}
+
+	if err := h.classRepo.UpdateDeleteInfo(c.Context(), uint(id), uint(currentUserIDUint)); err != nil {
+		log.Println("error updating delete info:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_update_delete_info",
+			"error":         "Failed to delete class",
 		})
 	}
 
 	return c.JSON(fiber.Map{
-		"message": "Class deleted successfully",
+		"translate_key": "success.class_deleted",
+		"message":       "Class deleted successfully",
 	})
 }

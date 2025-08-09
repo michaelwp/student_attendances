@@ -39,7 +39,7 @@ func (r *classRepository) Create(ctx context.Context, class *models.Class) error
 func (r *classRepository) GetByID(ctx context.Context, id uint) (*models.Class, error) {
 	query := `
 		SELECT id, name, homeroom_teacher, description, created_at, updated_at
-		FROM classes WHERE id = $1`
+		FROM classes WHERE id = $1 AND deleted_at IS NULL`
 
 	class := &models.Class{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -65,6 +65,7 @@ func (r *classRepository) GetAll(ctx context.Context, limit, offset int) ([]*mod
 	query := `
 		SELECT id, name, homeroom_teacher, description, created_at, updated_at
 		FROM classes
+		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -102,7 +103,7 @@ func (r *classRepository) GetByTeacher(ctx context.Context, teacherID string) ([
 	query := `
 		SELECT id, name, homeroom_teacher, description, created_at, updated_at
 		FROM classes 
-		WHERE homeroom_teacher = $1
+		WHERE homeroom_teacher = $1 AND deleted_at IS NULL
 		ORDER BY created_at DESC`
 
 	rows, err := r.db.QueryContext(ctx, query, teacherID)
@@ -180,7 +181,7 @@ func (r *classRepository) Delete(ctx context.Context, id uint) error {
 }
 
 func (r *classRepository) GetTotalClasses(ctx context.Context) (int, error) {
-	query := `SELECT COUNT(*) FROM classes`
+	query := `SELECT COUNT(*) FROM classes WHERE deleted_at IS NULL`
 
 	var total int
 	err := r.db.QueryRowContext(ctx, query).Scan(&total)
@@ -189,4 +190,23 @@ func (r *classRepository) GetTotalClasses(ctx context.Context) (int, error) {
 	}
 
 	return total, nil
+}
+
+func (r *classRepository) UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error {
+	query := `
+		UPDATE classes 
+		SET deleted_at = NOW(), deleted_by = $2
+		WHERE id = $1
+		RETURNING deleted_at`
+
+	var deletedAt string
+	err := r.db.QueryRowContext(ctx, query, id, deletedBy).Scan(&deletedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("class not found")
+		}
+		return fmt.Errorf("failed to update class delete info: %w", err)
+	}
+
+	return nil
 }
