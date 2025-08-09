@@ -7,7 +7,7 @@ import Modal, { ConfirmModal } from '../components/Modal';
 import ResetPasswordConfirmModal from '../components/ResetPasswordConfirmModal';
 import PasswordResetModal from '../components/PasswordResetModal';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { studentsApi, classesApi } from '../services/api';
 import type { Student, StudentFormData, Class } from '../types/models';
 import { passwordValidationRules, validatePassword, getPasswordStrength, isValidEmail } from '../utils/validation';
@@ -90,7 +90,7 @@ export const StudentsPage: React.FC = () => {
         ...prev,
         total: response.total || 0,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch students:', error);
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export const StudentsPage: React.FC = () => {
     try {
       const response = await classesApi.getAll({ limit: 100, offset: 0 });
       setClasses(response.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch classes:', error);
     }
   };
@@ -160,11 +160,11 @@ export const StudentsPage: React.FC = () => {
       );
       await fetchStudents();
       setConfirmModal({ isOpen: false, student: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete student:', error);
       showError(
         t('common.error'),
-        error?.message || t('students.delete_failed')
+        (error as Error)?.message || t('students.delete_failed')
       );
     }
   };
@@ -184,11 +184,11 @@ export const StudentsPage: React.FC = () => {
       });
       
       await fetchStudents();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to reset student password:', error);
       showError(
         t('common.error'),
-        error?.message || t('students.password_reset_failed')
+        (error as Error)?.message || t('students.password_reset_failed')
       );
     }
   };
@@ -202,7 +202,8 @@ export const StudentsPage: React.FC = () => {
 
     try {
       // Remove retype_password before sending to API
-      const { retype_password, ...apiData } = data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { retype_password: _retype_password, ...apiData } = data;
 
       if (isEditMode && currentEditingId) {
         console.log('Updating student with ID:', currentEditingId);
@@ -225,11 +226,11 @@ export const StudentsPage: React.FC = () => {
       setEditingStudent(null); // Reset editing state after successful operation
       setEditingStudentId(null);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save student:', error);
       showError(
         t('common.error'),
-        error?.message || t('students.save_failed')
+        (error as Error)?.message || t('students.save_failed')
       );
     }
   };
@@ -265,7 +266,7 @@ export const StudentsPage: React.FC = () => {
     {
       key: 'classes_id',
       title: t('students.class'),
-      render: (value) => getClassName(value),
+      render: (value) => getClassName(value as number),
     },
     {
       key: 'email',
@@ -278,12 +279,12 @@ export const StudentsPage: React.FC = () => {
     {
       key: 'is_active',
       title: t('students.status'),
-      render: (value) => getStatusBadge(value),
+      render: (value) => getStatusBadge(value as boolean),
     },
     {
       key: 'created_at',
       title: t('common.created_at'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

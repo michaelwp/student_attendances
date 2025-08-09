@@ -2,8 +2,9 @@ import type { TeacherFormData, StudentFormData, AdminFormData } from '../types/m
 
 // Helper functions to transform form data for API calls
 
-export const prepareTeacherDataForAPI = (data: TeacherFormData, isUpdate: boolean = false): any => {
-  const { retype_password, password, ...apiData } = data;
+export const prepareTeacherDataForAPI = (data: TeacherFormData, isUpdate: boolean = false) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { retype_password: _retype_password, password, ...apiData } = data;
   
   // Handle phone field - send null if empty for backend compatibility (*string type)
   const phone = data.phone && data.phone.trim() !== '' ? data.phone.trim() : null;
@@ -24,8 +25,9 @@ export const prepareTeacherDataForAPI = (data: TeacherFormData, isUpdate: boolea
   return cleanData;
 };
 
-export const prepareStudentDataForAPI = (data: StudentFormData, isUpdate: boolean = false): any => {
-  const { retype_password, password, ...apiData } = data;
+export const prepareStudentDataForAPI = (data: StudentFormData, isUpdate: boolean = false) => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { retype_password: _retype_password, password, ...apiData } = data;
   
   // Handle phone field - send null if empty for backend compatibility (*string type)
   const phone = data.phone && data.phone.trim() !== '' ? data.phone.trim() : null;
@@ -48,6 +50,7 @@ export const prepareStudentDataForAPI = (data: StudentFormData, isUpdate: boolea
 };
 
 export const prepareAdminDataForAPI = (data: AdminFormData) => {
-  const { retype_password, ...apiData } = data;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { retype_password: _retype_password, ...apiData } = data;
   return apiData;
 };

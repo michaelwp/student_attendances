@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal, { ConfirmModal } from '../components/Modal';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { attendanceApi, studentsApi, classesApi } from '../services/api';
 import type { Attendance, AttendanceFormData, Student, Class } from '../types/models';
 
@@ -97,7 +97,7 @@ export const AttendancePage: React.FC = () => {
         const items = (res.data as unknown as Attendance[]) || [];
         // Backend endpoint returns ApiResponse with data array but no total; estimate by length when page size reached
         setAttendance(items);
-        setPagination(prev => ({ ...prev, total: (res as any).total ?? prev.total }));
+        setPagination(prev => ({ ...prev, total: (res as { total?: number }).total ?? prev.total }));
         return;
       }
 
@@ -106,7 +106,7 @@ export const AttendancePage: React.FC = () => {
         const res = await attendanceApi.getByDateRange(filters.date, filters.date, { limit: pageLimit, offset: pageOffset });
         const items = (res.data as unknown as Attendance[]) || [];
         setAttendance(items);
-        setPagination(prev => ({ ...prev, total: (res as any).total ?? prev.total }));
+        setPagination(prev => ({ ...prev, total: (res as { total?: number }).total ?? prev.total }));
         return;
       }
 
@@ -114,10 +114,10 @@ export const AttendancePage: React.FC = () => {
       let bulkItems: Attendance[] = [];
       if (hasClass) {
         const res = await attendanceApi.getByClassId(Number(filters.class_id), { limit: BULK_LIMIT, offset: 0 });
-        bulkItems = ((res as any).data || []) as Attendance[];
+        bulkItems = ((res as { data?: unknown }).data || []) as Attendance[];
       } else if (hasDate) {
         const res = await attendanceApi.getByDateRange(filters.date, filters.date, { limit: BULK_LIMIT, offset: 0 });
-        bulkItems = ((res as any).data || []) as Attendance[];
+        bulkItems = ((res as { data?: unknown }).data || []) as Attendance[];
       } else {
         const res = await attendanceApi.getAll({ limit: BULK_LIMIT, offset: 0 });
         bulkItems = (res.data || []) as Attendance[];
@@ -125,11 +125,11 @@ export const AttendancePage: React.FC = () => {
 
       applyClientFiltersAndPaginate(bulkItems);
 
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch attendance:', error);
       showError(
         t('common.error'),
-        error?.message || t('error.failed_to_load')
+        (error as Error)?.message || t('error.failed_to_load')
       );
     } finally {
       setLoading(false);
@@ -140,11 +140,11 @@ export const AttendancePage: React.FC = () => {
     try {
       const response = await studentsApi.getAll({ limit: 1000, offset: 0 });
       setStudents(response.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch students:', error);
       showError(
         t('common.error'),
-        error?.message || 'Failed to fetch students'
+        (error as Error)?.message || 'Failed to fetch students'
       );
     }
   };
@@ -153,11 +153,11 @@ export const AttendancePage: React.FC = () => {
     try {
       const response = await classesApi.getAll({ limit: 100, offset: 0 });
       setClasses(response.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch classes:', error);
       showError(
         t('common.error'),
-        error?.message || 'Failed to fetch classes'
+        (error as Error)?.message || 'Failed to fetch classes'
       );
     }
   };
@@ -193,11 +193,11 @@ export const AttendancePage: React.FC = () => {
       );
       await fetchAttendance();
       setConfirmModal({ isOpen: false, attendanceRecord: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete attendance:', error);
       showError(
         t('common.error'),
-        error?.message || t('attendance.delete_failed')
+        (error as Error)?.message || t('attendance.delete_failed')
       );
     }
   };
@@ -226,11 +226,11 @@ export const AttendancePage: React.FC = () => {
       setModalOpen(false);
       setEditingAttendance(null);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save attendance:', error);
       showError(
         t('common.error'),
-        error?.message || t('attendance.save_failed')
+        (error as Error)?.message || t('attendance.save_failed')
       );
     }
   };
@@ -264,33 +264,33 @@ export const AttendancePage: React.FC = () => {
     {
       key: 'date',
       title: t('attendance.date'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
       width: '32',
     },
     {
       key: 'student_id',
       title: t('attendance.student'),
-      render: (value) => getStudentName(value),
+      render: (value) => getStudentName(value as string),
     },
     {
       key: 'class_id',
       title: t('attendance.class'),
-      render: (value) => getClassName(value),
+      render: (value) => getClassName(value as number),
     },
     {
       key: 'status',
       title: t('attendance.status.label'),
-      render: (value) => getStatusBadge(value),
+      render: (value) => getStatusBadge(value as string),
     },
     {
       key: 'description',
       title: t('attendance.notes'),
-      render: (value) => value || '-',
+      render: (value) => (value as string) || '-',
     },
     {
       key: 'created_at',
       title: t('common.created_at'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 
