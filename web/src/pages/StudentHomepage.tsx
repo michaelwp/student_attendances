@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { studentAttendanceApi } from '../services/api';
 
 interface StudentAttendanceFormData {
@@ -37,11 +37,11 @@ export const StudentHomepage: React.FC = () => {
       );
       
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to mark attendance:', error);
       showError(
         t('common.error'),
-        error?.message || t('studentHomepage.attendance_failed')
+        (error as Error)?.message || t('studentHomepage.attendance_failed')
       );
     } finally {
       setIsSubmitting(false);

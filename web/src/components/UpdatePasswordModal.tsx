@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useForm } from 'react-hook-form';
 import Modal from './Modal';
-import { useToast } from './Toast';
+import { useToast } from '../utils/toast-helpers';
 import { teachersApi, studentsApi, adminsApi } from '../services/api';
 import { passwordValidationRules, validatePassword, getPasswordStrength } from '../utils/validation';
 
@@ -84,11 +84,11 @@ const UpdatePasswordModal: React.FC<UpdatePasswordModalProps> = ({
 
       reset();
       onClose();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to update password:', error);
       showError(
         t('common.error'),
-        error?.message || t('passwords.update_failed')
+        (error as Error)?.message || t('passwords.update_failed')
       );
     } finally {
       setIsSubmitting(false);

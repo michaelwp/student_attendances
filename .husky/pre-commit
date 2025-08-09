@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+# Run lint-staged for the web client
+cd web || exit 1
+npx lint-staged

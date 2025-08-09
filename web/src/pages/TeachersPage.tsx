@@ -7,7 +7,7 @@ import Modal, { ConfirmModal } from '../components/Modal';
 import ResetPasswordConfirmModal from '../components/ResetPasswordConfirmModal';
 import PasswordResetModal from '../components/PasswordResetModal';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { teachersApi } from '../services/api';
 import type { Teacher, TeacherFormData } from '../types/models';
 import { passwordValidationRules, validatePassword, getPasswordStrength, isValidEmail } from '../utils/validation';
@@ -93,7 +93,7 @@ export const TeachersPage: React.FC = () => {
         ...prev,
         total: response.total || 0,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch teachers:', error);
     } finally {
       setLoading(false);
@@ -153,11 +153,11 @@ export const TeachersPage: React.FC = () => {
       );
       await fetchTeachers();
       setConfirmModal({ isOpen: false, teacher: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete teacher:', error);
       showError(
         t('common.error'),
-        error?.message || t('teachers.delete_failed')
+        (error as Error)?.message || t('teachers.delete_failed')
       );
     }
   };
@@ -177,11 +177,11 @@ export const TeachersPage: React.FC = () => {
       });
       
       await fetchTeachers();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to reset teacher password:', error);
       showError(
         t('common.error'),
-        error?.message || t('teachers.password_reset_failed')
+        (error as Error)?.message || t('teachers.password_reset_failed')
       );
     }
   };
@@ -195,7 +195,8 @@ export const TeachersPage: React.FC = () => {
     
     try {
       // Remove retype_password before sending to API
-      const { retype_password, ...apiData } = data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { retype_password: _retype_password, ...apiData } = data;
       
       if (isEditMode && currentEditingId) {
         console.log('Updating teacher with ID:', currentEditingId);
@@ -218,11 +219,11 @@ export const TeachersPage: React.FC = () => {
       setEditingTeacher(null); // Reset editing state after successful operation
       setEditingTeacherId(null);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save teacher:', error);
       showError(
         t('common.error'),
-        error?.message || t('teachers.save_failed')
+        (error as Error)?.message || t('teachers.save_failed')
       );
     }
   };
@@ -261,12 +262,12 @@ export const TeachersPage: React.FC = () => {
     {
       key: 'is_active',
       title: t('teachers.status'),
-      render: (value) => getStatusBadge(value),
+      render: (value) => getStatusBadge(value as boolean),
     },
     {
       key: 'created_at',
       title: t('common.created_at'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

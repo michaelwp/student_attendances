@@ -21,8 +21,8 @@ export const Dashboard: React.FC = () => {
       const response = await dashboardApi.getStats();
       setStats(response.data || null);
       setError(null);
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch stats');
+    } catch (err: unknown) {
+      setError((err as Error).message || 'Failed to fetch stats');
     } finally {
       setLoading(false);
     }
