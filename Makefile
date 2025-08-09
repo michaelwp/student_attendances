@@ -19,10 +19,12 @@ uninstall-hooks: ## Remove Git hooks
 	@echo "Git pre-commit hook removed!"
 
 lint: ## Run golangci-lint
-	golangci-lint run --config .golangci.yml
+	@golangci-lint run --config .golangci.yml
+	@cd web && npm run lint
 
 lint-fix: ## Run golangci-lint with auto-fix
-	golangci-lint run --config .golangci.yml --fix
+	@golangci-lint run --config .golangci.yml --fix
+	@cd web && npm run lint:fix
 
 swagger: ## Generate Swagger documentation
 	@echo "Generating Swagger documentation..."

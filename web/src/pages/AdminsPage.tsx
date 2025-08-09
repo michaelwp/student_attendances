@@ -5,7 +5,7 @@ import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal, { ConfirmModal } from '../components/Modal';
 import UpdatePasswordModal from '../components/UpdatePasswordModal';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { adminsApi } from '../services/api';
 import type { Admin, AdminFormData } from '../types/models';
 import { isValidEmail, passwordValidationRules, validatePassword, getPasswordStrength } from '../utils/validation';
@@ -81,7 +81,7 @@ export const AdminsPage: React.FC = () => {
         ...prev,
         total: response.total || 0,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch admins:', error);
     } finally {
       setLoading(false);
@@ -122,11 +122,11 @@ export const AdminsPage: React.FC = () => {
       );
       await fetchAdmins();
       setConfirmModal({ isOpen: false, admin: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete admin:', error);
       showError(
         t('common.error'),
-        error?.message || t('admins.delete_failed')
+        (error as Error)?.message || t('admins.delete_failed')
       );
     }
   };
@@ -134,7 +134,8 @@ export const AdminsPage: React.FC = () => {
   const onSubmit = async (data: AdminFormData) => {
     try {
       // Remove retype_password before sending to API
-      const { retype_password, ...apiData } = data;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { retype_password: _retype_password, ...apiData } = data;
       
       if (editingAdmin) {
         await adminsApi.update(editingAdmin.id, apiData);
@@ -152,11 +153,11 @@ export const AdminsPage: React.FC = () => {
       await fetchAdmins();
       setModalOpen(false);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save admin:', error);
       showError(
         t('common.error'),
-        error?.message || t('admins.save_failed')
+        (error as Error)?.message || t('admins.save_failed')
       );
     }
   };
@@ -182,17 +183,17 @@ export const AdminsPage: React.FC = () => {
     {
       key: 'is_active',
       title: t('admins.status'),
-      render: (value) => getStatusBadge(value),
+      render: (value) => getStatusBadge(value as boolean),
     },
     {
       key: 'last_login',
       title: t('admins.last_login'),
-      render: (value) => value ? new Date(value).toLocaleDateString() : t('common.never'),
+      render: (value) => value ? new Date(value as string).toLocaleDateString() : t('common.never'),
     },
     {
       key: 'created_at',
       title: t('common.created_at'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

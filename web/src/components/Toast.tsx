@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
+import type { ToastData } from '../utils/toast-helpers';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -22,6 +23,13 @@ export const Toast: React.FC<ToastProps> = ({
   const [isVisible, setIsVisible] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
 
+  const handleClose = useCallback(() => {
+    setIsClosing(true);
+    setTimeout(() => {
+      onClose(id);
+    }, 300);
+  }, [onClose, id]);
+
   useEffect(() => {
     // Show animation
     const showTimer = setTimeout(() => setIsVisible(true), 100);
@@ -35,14 +43,7 @@ export const Toast: React.FC<ToastProps> = ({
       clearTimeout(showTimer);
       clearTimeout(closeTimer);
     };
-  }, [duration]);
-
-  const handleClose = () => {
-    setIsClosing(true);
-    setTimeout(() => {
-      onClose(id);
-    }, 300);
-  };
+  }, [duration, handleClose]);
 
   const getTypeStyles = () => {
     switch (type) {
@@ -119,67 +120,20 @@ export const Toast: React.FC<ToastProps> = ({
   );
 };
 
-export interface ToastData {
-  id: string;
-  type: ToastType;
-  title: string;
-  message: string;
-  duration?: number;
-}
-
-export interface UseToastReturn {
-  showToast: (toast: Omit<ToastData, 'id'>) => void;
-  showSuccess: (title: string, message: string) => void;
-  showError: (title: string, message: string) => void;
-  showWarning: (title: string, message: string) => void;
-  showInfo: (title: string, message: string) => void;
-}
-
-let toastId = 0;
-let addToastCallback: ((toast: ToastData) => void) | null = null;
-
-export const useToast = (): UseToastReturn => {
-  const showToast = (toast: Omit<ToastData, 'id'>) => {
-    const id = `toast-${++toastId}`;
-    const newToast: ToastData = {
-      ...toast,
-      id,
-    };
-    
-    if (addToastCallback) {
-      addToastCallback(newToast);
-    }
-  };
-
-  const showSuccess = (title: string, message: string) => {
-    showToast({ type: 'success', title, message });
-  };
-
-  const showError = (title: string, message: string) => {
-    showToast({ type: 'error', title, message });
-  };
-
-  const showWarning = (title: string, message: string) => {
-    showToast({ type: 'warning', title, message });
-  };
-
-  const showInfo = (title: string, message: string) => {
-    showToast({ type: 'info', title, message });
-  };
-
-  return { showToast, showSuccess, showError, showWarning, showInfo };
-};
 
 export const ToastContainer: React.FC = () => {
   const [toasts, setToasts] = useState<ToastData[]>([]);
 
   useEffect(() => {
-    addToastCallback = (toast: ToastData) => {
+    // Direct assignment to the imported variable
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (window as any).__addToastCallback = (toast: ToastData) => {
       setToasts(prev => [...prev, toast]);
     };
 
     return () => {
-      addToastCallback = null;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__addToastCallback = null;
     };
   }, []);
 

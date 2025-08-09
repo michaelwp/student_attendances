@@ -4,7 +4,7 @@ import { useForm } from 'react-hook-form';
 import DataTable from '../components/DataTable';
 import type { Column } from '../components/DataTable';
 import Modal, { ConfirmModal } from '../components/Modal';
-import { useToast } from '../components/Toast';
+import { useToast } from '../utils/toast-helpers';
 import { classesApi, teachersApi } from '../services/api';
 import type { Class, ClassFormData, Teacher } from '../types/models';
 
@@ -51,7 +51,7 @@ export const ClassesPage: React.FC = () => {
         ...prev,
         total: response.total || 0,
       }));
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch classes:', error);
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export const ClassesPage: React.FC = () => {
     try {
       const response = await teachersApi.getAll({ limit: 100, offset: 0 });
       setTeachers(response.data || []);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to fetch teachers:', error);
     }
   };
@@ -96,11 +96,11 @@ export const ClassesPage: React.FC = () => {
       );
       await fetchClasses();
       setConfirmModal({ isOpen: false, classItem: null });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to delete class:', error);
       showError(
         t('common.error'),
-        error?.message || t('classes.delete_failed')
+        (error as Error)?.message || t('classes.delete_failed')
       );
     }
   };
@@ -123,11 +123,11 @@ export const ClassesPage: React.FC = () => {
       await fetchClasses();
       setModalOpen(false);
       reset();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to save class:', error);
       showError(
         t('common.error'),
-        error?.message || t('classes.save_failed')
+        (error as Error)?.message || t('classes.save_failed')
       );
     }
   };
@@ -146,17 +146,17 @@ export const ClassesPage: React.FC = () => {
     {
       key: 'homeroom_teacher',
       title: t('classes.homeroom_teacher'),
-      render: (value) => getTeacherName(value),
+      render: (value) => getTeacherName(value as string),
     },
     {
       key: 'description',
       title: t('classes.description'),
-      render: (value) => value || '-',
+      render: (value) => (value as string) || '-',
     },
     {
       key: 'created_at',
       title: t('common.created_at'),
-      render: (value) => new Date(value).toLocaleDateString(),
+      render: (value) => new Date(value as string).toLocaleDateString(),
     },
   ];
 

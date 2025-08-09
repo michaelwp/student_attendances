@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 export interface Column<T> {
   key: keyof T | string;
   title: string;
-  render?: (value: any, record: T) => React.ReactNode;
+  render?: (value: unknown, record: T) => React.ReactNode;
   width?: string;
   sortable?: boolean;
 }
@@ -26,7 +26,7 @@ export interface DataTableProps<T> {
   className?: string;
 }
 
-export function DataTable<T extends { id: number | string } & Record<string, any>>({
+export function DataTable<T extends { id: number | string }>({
   data,
   columns,
   loading = false,
@@ -39,10 +39,11 @@ export function DataTable<T extends { id: number | string } & Record<string, any
 }: DataTableProps<T>) {
   const { t } = useTranslation();
 
-  const getValue = (record: T, key: keyof T | string): any => {
+  const getValue = (record: T, key: keyof T | string): unknown => {
     if (typeof key === 'string' && key.includes('.')) {
       // Handle nested keys like 'user.name'
-      return key.split('.').reduce((obj, k) => obj?.[k], record);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return key.split('.').reduce((obj: any, k) => obj?.[k], record);
     }
     return record[key as keyof T];
   };
@@ -129,7 +130,7 @@ export function DataTable<T extends { id: number | string } & Record<string, any
                         key={colIndex}
                         className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100"
                       >
-                        {column.render ? column.render(value, record) : value}
+                        {column.render ? column.render(value, record) : (value as React.ReactNode)}
                       </td>
                     );
                   })}
