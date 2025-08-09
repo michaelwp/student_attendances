@@ -8,6 +8,7 @@ const (
 	AttendanceStatusPresent AttendanceStatus = "present"
 	AttendanceStatusAbsent  AttendanceStatus = "absent"
 	AttendanceStatusLate    AttendanceStatus = "late"
+	AttendanceStatusExcused AttendanceStatus = "excused"
 )
 
 type Attendance struct {
@@ -18,7 +19,13 @@ type Attendance struct {
 	Status      AttendanceStatus `json:"status" db:"status"`
 	Description *string          `json:"description" db:"description"`
 	CreatedAt   time.Time        `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
+	UpdatedAt   *time.Time       `json:"updated_at" db:"updated_at"`
+	TimeIn      time.Time        `json:"time_in" db:"time_in"`
+	TimeOut     *time.Time       `json:"time_out" db:"time_out"`
+	CreatedBy   uint             `json:"created_by" db:"created_by"`
+	UpdatedBy   *uint            `json:"updated_by" db:"updated_by"`
+	DeletedAt   *time.Time       `json:"deleted_at" db:"deleted_at"`
+	DeletedBy   *uint            `json:"deleted_by" db:"deleted_by"`
 }
 
 func (Attendance) TableName() string {

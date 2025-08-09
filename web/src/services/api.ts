@@ -14,8 +14,6 @@ import type {
   AttendanceFormData,
   PasswordUpdateData,
   PasswordResetResponse,
-  PhotoUploadResponse,
-  PhotoUrlResponse,
   DashboardStats,
 } from '../types/models';
 
@@ -81,9 +79,10 @@ class ApiService {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<T> {
+    // Convert headers to Record<string, string> to ensure type safety
     const headers = {
       ...this.defaultHeaders,
-      ...options.headers,
+      ...(options.headers as Record<string, string> || {}),
     };
 
     return this.request<T>(endpoint, {
@@ -99,18 +98,38 @@ class ApiService {
   ): Promise<T> {
     const url = `${API_BASE_URL}${endpoint}`;
     
+    // Don't set Content-Type for FormData - browser sets it automatically with boundary
+    const isFormData = options.body instanceof FormData;
+    
+    // Convert headers to Record<string, string> to ensure type safety
+    const defaultHeaders: Record<string, string> = {
+      ...this.defaultHeaders,
+      ...(options.headers as Record<string, string> || {}),
+    };
+    
+    // Only set Content-Type for non-FormData requests
+    if (!isFormData) {
+      defaultHeaders['Content-Type'] = 'application/json';
+    }
+    
     const defaultOptions: RequestInit = {
-      headers: {
-        'Content-Type': 'application/json',
-        ...this.defaultHeaders,
-        ...options.headers,
-      },
+      headers: defaultHeaders,
       credentials: 'include', // Include cookies for authentication
       ...options,
     };
 
     try {
+      console.log('Making request to:', url);
+      console.log('Request options:', {
+        method: defaultOptions.method || 'GET',
+        headers: defaultOptions.headers,
+        bodyType: defaultOptions.body ? typeof defaultOptions.body : 'none',
+        isFormData: isFormData
+      });
+      
       const response = await fetch(url, defaultOptions);
+      
+      console.log('Response status:', response.status, response.statusText);
       
       if (!response.ok) {
         let errorData: ApiErrorType;
@@ -173,46 +192,36 @@ export const teachersApi = {
     if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiService.request<PaginatedResponse<Teacher>>(
-      `/teachers${query ? `?${query}` : ''}`
+      `/teachers/all${query ? `?${query}` : ''}`
     );
   },
   getById: (id: number) =>
-    apiService.request<ApiResponse<Teacher>>(`/teachers/${id}`),
+    apiService.request<ApiResponse<Teacher>>(`/teachers/record-id/${id}`),
   getByTeacherId: (teacherId: string) =>
-    apiService.request<ApiResponse<Teacher>>(`/teachers/teacher/${teacherId}`),
+    apiService.request<ApiResponse<Teacher>>(`/teachers/teacher-id/${teacherId}`),
   create: (data: TeacherFormData) =>
     apiService.request<ApiResponse<Teacher>>('/teachers', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   update: (id: number, data: Partial<TeacherFormData>) =>
-    apiService.request<ApiResponse<Teacher>>(`/teachers/${id}`, {
+    apiService.request<ApiResponse<Teacher>>(`/teachers/record-id/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   delete: (id: number) =>
-    apiService.request<ApiResponse<null>>(`/teachers/${id}`, {
+    apiService.request<ApiResponse<null>>(`/teachers/record-id/${id}`, {
       method: 'DELETE',
     }),
   updatePassword: (teacherId: string, data: PasswordUpdateData) =>
-    apiService.request<ApiResponse<null>>(`/teachers/${teacherId}/password`, {
+    apiService.request<ApiResponse<null>>(`/teachers/teacher-id/${teacherId}/password`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  resetPassword: (id: number) =>
-    apiService.request<PasswordResetResponse>(`/teachers/${id}/reset-password`, {
-      method: 'POST',
+  resetPassword: (teacherId: string) =>
+    apiService.request<PasswordResetResponse>(`/teachers/teacher-id/${teacherId}/reset-password`, {
+      method: 'PUT',
     }),
-  uploadPhoto: (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiService.request<PhotoUploadResponse>(`/teachers/${id}/photo`, {
-      method: 'POST',
-      body: formData,
-    });
-  },
-  getPhotoUrl: (id: number) =>
-    apiService.request<PhotoUrlResponse>(`/teachers/${id}/photo-url`),
 };
 
 // Students API
@@ -223,48 +232,38 @@ export const studentsApi = {
     if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiService.request<PaginatedResponse<Student>>(
-      `/students${query ? `?${query}` : ''}`
+      `/students/all${query ? `?${query}` : ''}`
     );
   },
   getById: (id: number) =>
-    apiService.request<ApiResponse<Student>>(`/students/${id}`),
+    apiService.request<ApiResponse<Student>>(`/students/record-id/${id}`),
   getByStudentId: (studentId: string) =>
-    apiService.request<ApiResponse<Student>>(`/students/student/${studentId}`),
+    apiService.request<ApiResponse<Student>>(`/students/student-id/${studentId}`),
   getByClassId: (classId: number) =>
-    apiService.request<ApiResponse<Student[]>>(`/students/class/${classId}`),
+    apiService.request<ApiResponse<Student[]>>(`/students/class-id/${classId}`),
   create: (data: StudentFormData) =>
     apiService.request<ApiResponse<Student>>('/students', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   update: (id: number, data: Partial<StudentFormData>) =>
-    apiService.request<ApiResponse<Student>>(`/students/${id}`, {
+    apiService.request<ApiResponse<Student>>(`/students/record-id/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   delete: (id: number) =>
-    apiService.request<ApiResponse<null>>(`/students/${id}`, {
+    apiService.request<ApiResponse<null>>(`/students/record-id/${id}`, {
       method: 'DELETE',
     }),
   updatePassword: (studentId: string, data: PasswordUpdateData) =>
-    apiService.request<ApiResponse<null>>(`/students/${studentId}/password`, {
+    apiService.request<ApiResponse<null>>(`/students/student-id/${studentId}/password`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
-  resetPassword: (id: number) =>
-    apiService.request<PasswordResetResponse>(`/students/${id}/reset-password`, {
-      method: 'POST',
+  resetPassword: (studentId: string) =>
+    apiService.request<PasswordResetResponse>(`/students/student-id/${studentId}/reset-password`, {
+      method: 'PUT',
     }),
-  uploadPhoto: (id: number, file: File) => {
-    const formData = new FormData();
-    formData.append('file', file);
-    return apiService.request<PhotoUploadResponse>(`/students/${id}/photo`, {
-      method: 'POST',
-      body: formData,
-    });
-  },
-  getPhotoUrl: (id: number) =>
-    apiService.request<PhotoUrlResponse>(`/students/${id}/photo-url`),
 };
 
 // Classes API
@@ -298,52 +297,65 @@ export const classesApi = {
 
 // Attendance API
 export const attendanceApi = {
-  getAll: (params?: { limit?: number; offset?: number; date?: string; class_id?: number; student_id?: string }) => {
+  getAll: (params?: { limit?: number; offset?: number; class_id?: number | string; date?: string; status?: string }) => {
     const searchParams = new URLSearchParams();
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     if (params?.offset) searchParams.set('offset', params.offset.toString());
-    if (params?.date) searchParams.set('date', params.date);
     if (params?.class_id) searchParams.set('class_id', params.class_id.toString());
-    if (params?.student_id) searchParams.set('student_id', params.student_id);
+    if (params?.date) searchParams.set('date', params.date);
+    if (params?.status) searchParams.set('status', params.status);
     const query = searchParams.toString();
     return apiService.request<PaginatedResponse<Attendance>>(
-      `/attendance${query ? `?${query}` : ''}`
+      `/attendances/all${query ? `?${query}` : ''}`
     );
   },
   getById: (id: number) =>
-    apiService.request<ApiResponse<Attendance>>(`/attendance/${id}`),
+    apiService.request<ApiResponse<Attendance>>(`/attendances/attendances-id/${id}`),
   create: (data: AttendanceFormData) =>
-    apiService.request<ApiResponse<Attendance>>('/attendance', {
+    apiService.request<ApiResponse<Attendance>>('/attendances', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
   update: (id: number, data: Partial<AttendanceFormData>) =>
-    apiService.request<ApiResponse<Attendance>>(`/attendance/${id}`, {
+    apiService.request<ApiResponse<Attendance>>(`/attendances/attendances-id/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   delete: (id: number) =>
-    apiService.request<ApiResponse<null>>(`/attendance/${id}`, {
+    apiService.request<ApiResponse<null>>(`/attendances/attendances-id/${id}`, {
       method: 'DELETE',
     }),
-  getByStudentId: (studentId: string, date?: string) => {
+  getByStudentId: (studentId: string, params?: { date?: string; limit?: number; offset?: number }) => {
     const searchParams = new URLSearchParams();
-    if (date) searchParams.set('date', date);
+    if (params?.date) searchParams.set('date', params.date);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiService.request<ApiResponse<Attendance[]>>(
-      `/attendance/student/${studentId}${query ? `?${query}` : ''}`
+      `/attendances/student-id/${studentId}${query ? `?${query}` : ''}`
     );
   },
-  getByClassId: (classId: number, date?: string) => {
+  getByClassId: (classId: number, params?: { date?: string; limit?: number; offset?: number }) => {
     const searchParams = new URLSearchParams();
-    if (date) searchParams.set('date', date);
+    if (params?.date) searchParams.set('date', params.date);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiService.request<ApiResponse<Attendance[]>>(
-      `/attendance/class/${classId}${query ? `?${query}` : ''}`
+      `/attendances/class-id/${classId}${query ? `?${query}` : ''}`
     );
   },
-  getByDate: (date: string) =>
-    apiService.request<ApiResponse<Attendance[]>>(`/attendance/date/${date}`),
+  getByDateRange: (startDate: string, endDate: string, params?: { limit?: number; offset?: number }) => {
+    const searchParams = new URLSearchParams();
+    searchParams.set('start_date', startDate);
+    searchParams.set('end_date', endDate);
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
+    const query = searchParams.toString();
+    return apiService.request<ApiResponse<Attendance[]>>(
+      `/attendances/date-range?${query}`
+    );
+  },
 };
 
 // Admins API
@@ -354,11 +366,11 @@ export const adminsApi = {
     if (params?.offset) searchParams.set('offset', params.offset.toString());
     const query = searchParams.toString();
     return apiService.request<PaginatedResponse<Admin>>(
-      `/admins${query ? `?${query}` : ''}`
+      `/admins/all${query ? `?${query}` : ''}`
     );
   },
   getById: (id: number) =>
-    apiService.request<ApiResponse<Admin>>(`/admins/${id}`),
+    apiService.request<ApiResponse<Admin>>(`/admins/admin-id/${id}`),
   getByEmail: (email: string) =>
     apiService.request<ApiResponse<Admin>>(`/admins/email/${encodeURIComponent(email)}`),
   create: (data: AdminFormData) =>
@@ -367,21 +379,21 @@ export const adminsApi = {
       body: JSON.stringify(data),
     }),
   update: (id: number, data: Partial<AdminFormData>) =>
-    apiService.request<ApiResponse<Admin>>(`/admins/${id}`, {
+    apiService.request<ApiResponse<Admin>>(`/admins/admin-id/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   delete: (id: number) =>
-    apiService.request<ApiResponse<null>>(`/admins/${id}`, {
+    apiService.request<ApiResponse<null>>(`/admins/admin-id/${id}`, {
       method: 'DELETE',
     }),
-  updatePassword: (email: string, data: PasswordUpdateData) =>
-    apiService.request<ApiResponse<null>>(`/admins/${encodeURIComponent(email)}/password`, {
+  updatePassword: (id: number, data: PasswordUpdateData) =>
+    apiService.request<ApiResponse<null>>(`/admins/admin-id/${id}/password`, {
       method: 'PUT',
       body: JSON.stringify(data),
     }),
   setActiveStatus: (id: number, isActive: boolean) =>
-    apiService.request<ApiResponse<null>>(`/admins/${id}/status`, {
+    apiService.request<ApiResponse<null>>(`/admins/admin-id/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ is_active: isActive }),
     }),
@@ -391,4 +403,13 @@ export const adminsApi = {
 export const dashboardApi = {
   getStats: () =>
     apiService.request<ApiResponse<DashboardStats>>('/admins/stats'),
+};
+
+// Student Attendance Marking API (public endpoint, no auth required)
+export const studentAttendanceApi = {
+  markAttendance: (data: { student_id: string; password: string }) =>
+    apiService.request<{ student_name: string; message: string }>('/attendance/mark', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
 };

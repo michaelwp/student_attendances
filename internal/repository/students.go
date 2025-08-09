@@ -42,8 +42,8 @@ func (r *studentRepository) Create(ctx context.Context, student *models.Student)
 
 func (r *studentRepository) GetByID(ctx context.Context, id uint) (*models.Student, error) {
 	query := `
-		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at
-		FROM students WHERE id = $1`
+		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
+		FROM students WHERE id = $1 AND deleted_at IS NULL`
 
 	student := &models.Student{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -57,6 +57,7 @@ func (r *studentRepository) GetByID(ctx context.Context, id uint) (*models.Stude
 		&student.Password,
 		&student.CreatedAt,
 		&student.UpdatedAt,
+		&student.IsActive,
 	)
 
 	if err != nil {
@@ -71,8 +72,8 @@ func (r *studentRepository) GetByID(ctx context.Context, id uint) (*models.Stude
 
 func (r *studentRepository) GetByStudentID(ctx context.Context, studentID string) (*models.Student, error) {
 	query := `
-		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at
-		FROM students WHERE student_id = $1`
+		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
+		FROM students WHERE student_id = $1 AND deleted_at IS NULL`
 
 	student := &models.Student{}
 	err := r.db.QueryRowContext(ctx, query, studentID).Scan(
@@ -86,6 +87,7 @@ func (r *studentRepository) GetByStudentID(ctx context.Context, studentID string
 		&student.Password,
 		&student.CreatedAt,
 		&student.UpdatedAt,
+		&student.IsActive,
 	)
 
 	if err != nil {
@@ -100,8 +102,8 @@ func (r *studentRepository) GetByStudentID(ctx context.Context, studentID string
 
 func (r *studentRepository) GetByEmail(ctx context.Context, email string) (*models.Student, error) {
 	query := `
-		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at
-		FROM students WHERE email = $1`
+		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
+		FROM students WHERE email = $1 AND deleted_at IS NULL`
 
 	student := &models.Student{}
 	err := r.db.QueryRowContext(ctx, query, email).Scan(
@@ -115,6 +117,7 @@ func (r *studentRepository) GetByEmail(ctx context.Context, email string) (*mode
 		&student.Password,
 		&student.CreatedAt,
 		&student.UpdatedAt,
+		&student.IsActive,
 	)
 
 	if err != nil {
@@ -129,9 +132,9 @@ func (r *studentRepository) GetByEmail(ctx context.Context, email string) (*mode
 
 func (r *studentRepository) GetByClass(ctx context.Context, classID uint) ([]*models.Student, error) {
 	query := `
-		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at
+		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
 		FROM students 
-		WHERE classes_id = $1
+		WHERE classes_id = $1 AND deleted_at IS NULL
 		ORDER BY first_name, last_name`
 
 	rows, err := r.db.QueryContext(ctx, query, classID)
@@ -154,6 +157,7 @@ func (r *studentRepository) GetByClass(ctx context.Context, classID uint) ([]*mo
 			&student.Password,
 			&student.CreatedAt,
 			&student.UpdatedAt,
+			&student.IsActive,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan student: %w", err)
@@ -170,8 +174,9 @@ func (r *studentRepository) GetByClass(ctx context.Context, classID uint) ([]*mo
 
 func (r *studentRepository) GetAll(ctx context.Context, limit, offset int) ([]*models.Student, error) {
 	query := `
-		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at
+		SELECT id, student_id, classes_id, first_name, last_name, email, phone, password, created_at, updated_at, is_active
 		FROM students
+		WHERE deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $1 OFFSET $2`
 
@@ -195,6 +200,7 @@ func (r *studentRepository) GetAll(ctx context.Context, limit, offset int) ([]*m
 			&student.Password,
 			&student.CreatedAt,
 			&student.UpdatedAt,
+			&student.IsActive,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan student: %w", err)
@@ -291,7 +297,7 @@ func (r *studentRepository) GetPhotoPath(ctx context.Context, id uint) (string, 
 }
 
 func (r *studentRepository) GetTotalStudents(ctx context.Context) (int, error) {
-	query := `SELECT COUNT(*) FROM students`
+	query := `SELECT COUNT(*) FROM students WHERE deleted_at IS NULL`
 
 	var count int
 	err := r.db.QueryRowContext(ctx, query).Scan(&count)
@@ -337,7 +343,7 @@ func (r *studentRepository) GetPasswordByStudentID(ctx context.Context, studentI
 }
 
 func (r *studentRepository) IsStudentExist(ctx context.Context, studentID string) (bool, error) {
-	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1 AND is_active = true)`
+	query := `SELECT EXISTS(SELECT 1 FROM students WHERE student_id = $1)`
 
 	var exists bool
 	err := r.db.QueryRowContext(ctx, query, studentID).Scan(&exists)
@@ -354,7 +360,9 @@ func (r *studentRepository) GetStats(ctx context.Context) (*models.StudentStats,
 			COUNT(*) as total_students,
 			COUNT(CASE WHEN is_active = true THEN 1 END) as active_students,
 			COUNT(CASE WHEN is_active = false THEN 1 END) as inactive_students
-		FROM students`
+		FROM students
+		WHERE deleted_at IS NULL
+		`
 
 	stats := &models.StudentStats{}
 	err := r.db.QueryRowContext(ctx, query).Scan(
@@ -367,4 +375,23 @@ func (r *studentRepository) GetStats(ctx context.Context) (*models.StudentStats,
 	}
 
 	return stats, nil
+}
+
+func (r *studentRepository) UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error {
+	query := `
+		UPDATE students
+		SET deleted_at = NOW(), deleted_by = $2
+		WHERE id = $1
+		RETURNING deleted_at`
+
+	var deletedAt string
+	err := r.db.QueryRowContext(ctx, query, id, deletedBy).Scan(&deletedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("student not found")
+		}
+		return fmt.Errorf("failed to update student delete info: %w", err)
+	}
+
+	return nil
 }

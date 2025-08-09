@@ -20,9 +20,22 @@ func NewAttendanceRepository(db *sql.DB) AttendanceRepository {
 
 func (r *attendanceRepository) Create(ctx context.Context, attendance *models.Attendance) error {
 	query := `
-		INSERT INTO attendances (student_id, class_id, date, status, description, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
-		RETURNING id, created_at, updated_at`
+		INSERT INTO attendances (
+			student_id
+			, class_id
+			, date
+			, status
+			, description
+			
+			, created_at
+			, time_in
+			, created_by
+		)
+		VALUES (
+			$1, $2, $3, $4, $5
+			, NOW(), NOW(), $6
+		)
+		RETURNING id, created_at`
 
 	err := r.db.QueryRowContext(ctx, query,
 		attendance.StudentID,
@@ -30,7 +43,9 @@ func (r *attendanceRepository) Create(ctx context.Context, attendance *models.At
 		attendance.Date,
 		attendance.Status,
 		attendance.Description,
-	).Scan(&attendance.ID, &attendance.CreatedAt, &attendance.UpdatedAt)
+
+		attendance.CreatedBy,
+	).Scan(&attendance.ID, &attendance.CreatedAt)
 
 	if err != nil {
 		return fmt.Errorf("failed to create attendance: %w", err)
@@ -41,8 +56,21 @@ func (r *attendanceRepository) Create(ctx context.Context, attendance *models.At
 
 func (r *attendanceRepository) GetByID(ctx context.Context, id uint) (*models.Attendance, error) {
 	query := `
-		SELECT id, student_id, class_id, date, status, description, created_at, updated_at
-		FROM attendances WHERE id = $1`
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+		     
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+		
+			 , created_by
+			 , updated_by
+		FROM attendances WHERE id = $1 AND deleted_at IS NULL`
 
 	attendance := &models.Attendance{}
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
@@ -51,9 +79,15 @@ func (r *attendanceRepository) GetByID(ctx context.Context, id uint) (*models.At
 		&attendance.ClassID,
 		&attendance.Date,
 		&attendance.Status,
+
 		&attendance.Description,
 		&attendance.CreatedAt,
 		&attendance.UpdatedAt,
+		&attendance.TimeIn,
+		&attendance.TimeOut,
+
+		&attendance.CreatedBy,
+		&attendance.UpdatedBy,
 	)
 
 	if err != nil {
@@ -68,9 +102,22 @@ func (r *attendanceRepository) GetByID(ctx context.Context, id uint) (*models.At
 
 func (r *attendanceRepository) GetByStudentAndDate(ctx context.Context, studentID string, date time.Time) (*models.Attendance, error) {
 	query := `
-		SELECT id, student_id, class_id, date, status, description, created_at, updated_at
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+		     
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+			
+			 , created_by
+			 , updated_by
 		FROM attendances 
-		WHERE student_id = $1 AND DATE(date) = DATE($2)`
+		WHERE student_id = $1 AND DATE(date) = DATE($2) AND deleted_at IS NULL`
 
 	attendance := &models.Attendance{}
 	err := r.db.QueryRowContext(ctx, query, studentID, date).Scan(
@@ -79,9 +126,15 @@ func (r *attendanceRepository) GetByStudentAndDate(ctx context.Context, studentI
 		&attendance.ClassID,
 		&attendance.Date,
 		&attendance.Status,
+
 		&attendance.Description,
 		&attendance.CreatedAt,
 		&attendance.UpdatedAt,
+		&attendance.TimeIn,
+		&attendance.TimeOut,
+
+		&attendance.CreatedBy,
+		&attendance.UpdatedBy,
 	)
 
 	if err != nil {
@@ -96,9 +149,22 @@ func (r *attendanceRepository) GetByStudentAndDate(ctx context.Context, studentI
 
 func (r *attendanceRepository) GetByStudent(ctx context.Context, studentID string, limit, offset int) ([]*models.Attendance, error) {
 	query := `
-		SELECT id, student_id, class_id, date, status, description, created_at, updated_at
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+		     
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+			
+			 , created_by
+			 , updated_by
 		FROM attendances 
-		WHERE student_id = $1
+		WHERE student_id = $1 AND deleted_at IS NULL
 		ORDER BY date DESC
 		LIMIT $2 OFFSET $3`
 
@@ -117,9 +183,15 @@ func (r *attendanceRepository) GetByStudent(ctx context.Context, studentID strin
 			&attendance.ClassID,
 			&attendance.Date,
 			&attendance.Status,
+
 			&attendance.Description,
 			&attendance.CreatedAt,
 			&attendance.UpdatedAt,
+			&attendance.TimeIn,
+			&attendance.TimeOut,
+
+			&attendance.CreatedBy,
+			&attendance.UpdatedBy,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan attendance: %w", err)
@@ -136,9 +208,22 @@ func (r *attendanceRepository) GetByStudent(ctx context.Context, studentID strin
 
 func (r *attendanceRepository) GetByClass(ctx context.Context, classID uint, limit, offset int) ([]*models.Attendance, error) {
 	query := `
-		SELECT id, student_id, class_id, date, status, description, created_at, updated_at
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+		     
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+			
+			 , created_by
+			 , updated_by
 		FROM attendances 
-		WHERE class_id = $1
+		WHERE class_id = $1 AND deleted_at IS NULL
 		ORDER BY date DESC
 		LIMIT $2 OFFSET $3`
 
@@ -157,9 +242,15 @@ func (r *attendanceRepository) GetByClass(ctx context.Context, classID uint, lim
 			&attendance.ClassID,
 			&attendance.Date,
 			&attendance.Status,
+
 			&attendance.Description,
 			&attendance.CreatedAt,
 			&attendance.UpdatedAt,
+			&attendance.TimeIn,
+			&attendance.TimeOut,
+
+			&attendance.CreatedBy,
+			&attendance.UpdatedBy,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan attendance: %w", err)
@@ -176,9 +267,22 @@ func (r *attendanceRepository) GetByClass(ctx context.Context, classID uint, lim
 
 func (r *attendanceRepository) GetByDateRange(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]*models.Attendance, error) {
 	query := `
-		SELECT id, student_id, class_id, date, status, description, created_at, updated_at
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+		     
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+			
+			 , created_by
+			 , updated_by
 		FROM attendances 
-		WHERE DATE(date) >= DATE($1) AND DATE(date) <= DATE($2)
+		WHERE DATE(date) >= DATE($1) AND DATE(date) <= DATE($2) AND deleted_at IS NULL
 		ORDER BY date DESC
 		LIMIT $3 OFFSET $4`
 
@@ -197,9 +301,15 @@ func (r *attendanceRepository) GetByDateRange(ctx context.Context, startDate, en
 			&attendance.ClassID,
 			&attendance.Date,
 			&attendance.Status,
+
 			&attendance.Description,
 			&attendance.CreatedAt,
 			&attendance.UpdatedAt,
+			&attendance.TimeIn,
+			&attendance.TimeOut,
+
+			&attendance.CreatedBy,
+			&attendance.UpdatedBy,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan attendance: %w", err)
@@ -217,7 +327,16 @@ func (r *attendanceRepository) GetByDateRange(ctx context.Context, startDate, en
 func (r *attendanceRepository) Update(ctx context.Context, attendance *models.Attendance) error {
 	query := `
 		UPDATE attendances 
-		SET student_id = $2, class_id = $3, date = $4, status = $5, description = $6, updated_at = NOW()
+		SET student_id = $2
+		  , class_id = $3
+		  , date = $4
+		  , status = $5
+		  , description = $6
+		  
+		  , updated_at = NOW()
+		  , time_in = NOW()
+		  , time_out = NOW()
+		  , updated_by = $7
 		WHERE id = $1
 		RETURNING updated_at`
 
@@ -228,6 +347,7 @@ func (r *attendanceRepository) Update(ctx context.Context, attendance *models.At
 		attendance.Date,
 		attendance.Status,
 		attendance.Description,
+		attendance.UpdatedBy,
 	).Scan(&attendance.UpdatedAt)
 
 	if err != nil {
@@ -258,4 +378,97 @@ func (r *attendanceRepository) Delete(ctx context.Context, id uint) error {
 	}
 
 	return nil
+}
+
+func (r *attendanceRepository) UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error {
+	query := `
+		UPDATE attendances
+		SET deleted_at = NOW(), deleted_by = $2
+		WHERE id = $1
+		RETURNING deleted_at`
+
+	var deletedAt string
+	err := r.db.QueryRowContext(ctx, query, id, deletedBy).Scan(&deletedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("attendance not found")
+		}
+		return fmt.Errorf("failed to update attendance delete info: %w", err)
+	}
+
+	return nil
+}
+
+func (r *attendanceRepository) GetAll(ctx context.Context, limit, offset int) ([]*models.Attendance, error) {
+	query := `
+		SELECT id
+		     , student_id
+		     , class_id
+		     , date
+		     , status
+
+		     , description
+		     , created_at
+		     , updated_at
+			 , time_in
+			 , time_out
+
+			 , created_by
+			 , updated_by
+		FROM attendances
+		WHERE deleted_at IS NULL
+		ORDER BY date DESC
+		LIMIT $1 OFFSET $2`
+
+	rows, err := r.db.QueryContext(ctx, query, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get all attendances: %w", err)
+	}
+	defer rows.Close()
+
+	var attendances []*models.Attendance
+	for rows.Next() {
+		attendance := &models.Attendance{}
+		err := rows.Scan(
+			&attendance.ID,
+			&attendance.StudentID,
+			&attendance.ClassID,
+			&attendance.Date,
+			&attendance.Status,
+
+			&attendance.Description,
+			&attendance.CreatedAt,
+			&attendance.UpdatedAt,
+			&attendance.TimeIn,
+			&attendance.TimeOut,
+
+			&attendance.CreatedBy,
+			&attendance.UpdatedBy,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan attendance: %w", err)
+		}
+		attendances = append(attendances, attendance)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate attendances: %w", err)
+	}
+
+	return attendances, nil
+}
+
+func (r *attendanceRepository) GetCount(ctx context.Context) (int, error) {
+	query := `
+		SELECT COUNT(*) 
+		FROM attendances 
+		WHERE deleted_at IS NULL`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get attendance count: %w", err)
+	}
+
+	return count, nil
 }

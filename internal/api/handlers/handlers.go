@@ -20,7 +20,7 @@ func NewHandlers(dep *HandlerDependencies) *Handlers {
 		Teacher:       NewTeacherHandler(dep.Repositories.Teacher, dep.S3Client, dep.S3Config),
 		Class:         NewClassHandler(dep.Repositories.Class),
 		Student:       NewStudentHandler(dep.Repositories.Student, dep.S3Client, dep.S3Config),
-		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance),
+		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance, dep.Repositories.Student),
 		AbsentRequest: NewAbsentRequestHandler(dep.Repositories.AbsentRequest),
 		Admin:         NewAdminHandler(dep.Repositories.Admin),
 		Auth:          NewAuthHandler(dep.Repositories.Admin, dep.Repositories.Teacher, dep.Repositories.Student, dep.RedisClient),

@@ -23,6 +23,7 @@ type TeacherRepository interface {
 	GetPasswordByTeacherID(ctx context.Context, teacherID string) (string, error)
 	IsTeacherExist(ctx context.Context, teacherID string) (bool, error)
 	GetStats(ctx context.Context) (*models.TeacherStats, error)
+	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
 }
 
 // ClassRepository defines the interface for class operations
@@ -34,6 +35,7 @@ type ClassRepository interface {
 	Update(ctx context.Context, class *models.Class) error
 	Delete(ctx context.Context, id uint) error
 	GetTotalClasses(ctx context.Context) (int, error)
+	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
 }
 
 // StudentRepository defines the interface for student operations
@@ -53,6 +55,7 @@ type StudentRepository interface {
 	GetPasswordByStudentID(ctx context.Context, studentID string) (string, error)
 	IsStudentExist(ctx context.Context, studentID string) (bool, error)
 	GetStats(ctx context.Context) (*models.StudentStats, error)
+	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
 }
 
 // AttendanceRepository defines the interface for attendance operations
@@ -65,6 +68,9 @@ type AttendanceRepository interface {
 	GetByDateRange(ctx context.Context, startDate, endDate time.Time, limit, offset int) ([]*models.Attendance, error)
 	Update(ctx context.Context, attendance *models.Attendance) error
 	Delete(ctx context.Context, id uint) error
+	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
+	GetAll(ctx context.Context, limit, offset int) ([]*models.Attendance, error)
+	GetCount(ctx context.Context) (int, error)
 }
 
 // AbsentRequestRepository defines the interface for absent request operations
