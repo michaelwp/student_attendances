@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/michaelwp/student_attendance/internal/config"
 	"github.com/michaelwp/student_attendance/internal/models"
@@ -61,15 +62,15 @@ func SetupRoutes(
 	// Teacher routes
 	teachers := api.Group("/teachers", middleware.JWTMiddleware(redisClient))
 	teachers.Post("/", h.Teacher.Create)
-	teachers.Get("/", h.Teacher.GetAll)
-	teachers.Get("/:id", h.Teacher.GetByID)
+	teachers.Get("/all", h.Teacher.GetAll)
+	teachers.Get("/record-id/:id", h.Teacher.GetByID)
 	teachers.Get("/teacher-id/:teacherId", h.Teacher.GetByTeacherID)
-	teachers.Put("/:id", h.Teacher.Update)
-	teachers.Delete("/:id", h.Teacher.Delete)
-	teachers.Put("/:id/photo", h.Teacher.UploadPhoto)
-	teachers.Get("/:id/photo", h.Teacher.GetPhoto)
-	teachers.Put("/teacher-id/:teacherId/reset-password", h.Student.ResetPassword)
-	teachers.Put("/teacher-id/:teacherId/password", h.Student.UpdatePassword)
+	teachers.Put("/record-id/:id", h.Teacher.Update)
+	teachers.Delete("/record-id/:id", h.Teacher.Delete)
+	teachers.Put("/record-id/:id/photo", h.Teacher.UploadPhoto)
+	teachers.Get("/record-id/:id/photo", h.Teacher.GetPhoto)
+	teachers.Put("/teacher-id/:teacherId/reset-password", h.Teacher.ResetPassword)
+	teachers.Put("/teacher-id/:teacherId/password", h.Teacher.UpdatePassword)
 	teachers.Get("/stats", h.Admin.GetStat)
 
 	// Class routes
@@ -84,14 +85,14 @@ func SetupRoutes(
 	// Student routes
 	students := api.Group("/students", middleware.JWTMiddleware(redisClient))
 	students.Post("/", h.Student.Create)
-	students.Get("/", h.Student.GetAll)
-	students.Get("/:id", h.Student.GetByID)
+	students.Get("/all", h.Student.GetAll)
+	students.Get("/record-id/:id", h.Student.GetByID)
 	students.Get("/student-id/:studentId", h.Student.GetByStudentID)
 	students.Get("/class-id/:classId", h.Student.GetByClass)
-	students.Put("/:id", h.Student.Update)
-	students.Delete("/:id", h.Student.Delete)
-	students.Put("/:id/photo", h.Student.UploadPhoto)
-	students.Get("/:id/photo", h.Student.GetPhoto)
+	students.Put("/record-id/:id", h.Student.Update)
+	students.Delete("/record-id/:id", h.Student.Delete)
+	students.Put("/record-id/:id/photo", h.Student.UploadPhoto)
+	students.Get("/record-id/:id/photo", h.Student.GetPhoto)
 	students.Put("/student-id/:studentId/reset-password", h.Student.ResetPassword)
 	students.Put("/student-id/:studentId/password", h.Student.UpdatePassword)
 	students.Get("/stats", h.Admin.GetStat)
@@ -99,12 +100,13 @@ func SetupRoutes(
 	// Attendance routes
 	attendances := api.Group("/attendances", middleware.JWTMiddleware(redisClient))
 	attendances.Post("/", h.Attendance.Create)
-	attendances.Get("/:id", h.Attendance.GetByID)
+	attendances.Get("/all", h.Attendance.GetAll)
+	attendances.Get("/attendances-id/:id", h.Attendance.GetByID)
 	attendances.Get("/student-id/:studentId", h.Attendance.GetByStudent)
 	attendances.Get("/class-id/:classId", h.Attendance.GetByClass)
 	attendances.Get("/date-range", h.Attendance.GetByDateRange)
-	attendances.Put("/:id", h.Attendance.Update)
-	attendances.Delete("/:id", h.Attendance.Delete)
+	attendances.Put("/attendances-id/:id", h.Attendance.Update)
+	attendances.Delete("/attendances-id/:id", h.Attendance.Delete)
 
 	// Absent Request routes
 	absentRequests := api.Group("/absent-requests",
@@ -127,17 +129,21 @@ func SetupRoutes(
 		middleware.RequireUserType(models.UserTypeAdmin.String()),
 	)
 	admins.Post("/", h.Admin.Create)
-	admins.Get("/", h.Admin.GetAll)
-	admins.Get("/:id", h.Admin.GetByID)
-	admins.Get("/email/:email", h.Admin.GetByEmail)
-	admins.Put("/:id", h.Admin.Update)
-	admins.Delete("/:id", h.Admin.Delete)
-	admins.Put("/:id/password", h.Admin.UpdatePassword)
-	admins.Put("/:id/status", h.Admin.SetActiveStatus)
+	admins.Put("/admin-id/:id", h.Admin.Update)
+	admins.Delete("/admin-id/:id", h.Admin.Delete)
+	admins.Get("/all", h.Admin.GetAll)
+	admins.Get("/admin-id/:id", h.Admin.GetByID)
 	admins.Get("/stats", h.Admin.GetStat)
+	admins.Get("/email/:email", h.Admin.GetByEmail)
+	admins.Put("/password", h.Admin.UpdatePassword)
+	admins.Put("/admin-id/:id/status", h.Admin.SetActiveStatus)
+	admins.Put("/admin-id/:id/reset-password", h.Admin.ResetPassword)
 
 	// Authentication routes
 	auth := api.Group("/auth")
 	auth.Post("/login", h.Auth.Login)
 	auth.Post("/logout", middleware.JWTMiddleware(redisClient), h.Auth.Logout)
+
+	// Public student attendance marking (no authentication required)
+	api.Post("/attendance/mark", h.Attendance.MarkAttendance)
 }

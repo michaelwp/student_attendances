@@ -4,6 +4,64 @@
         "contact": {}
     },
     "paths": {
+        "/attendance/mark": {
+            "post": {
+                "description": "Allow students to mark their own attendance using student ID and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Mark student attendance (Public endpoint)",
+                "parameters": [
+                    {
+                        "description": "Student credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "student_id": { "type": "string" },
+                                "password": { "type": "string" }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance marked successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "student_name": { "type": "string" },
+                                "message": { "type": "string" }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing parameters",
+                        "schema": { "type": "object", "additionalProperties": true }
+                    },
+                    "401": {
+                        "description": "Invalid student credentials",
+                        "schema": { "type": "object", "additionalProperties": true }
+                    },
+                    "409": {
+                        "description": "Attendance already marked today",
+                        "schema": { "type": "object", "additionalProperties": true }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": { "type": "object", "additionalProperties": true }
+                    }
+                }
+            }
+        },
         "/absent-requests": {
             "post": {
                 "description": "Create a new absence request",
@@ -816,6 +874,51 @@
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "get": {
+                "description": "Retrieve all attendance records with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendances"
+                ],
+                "summary": "Get all attendance records",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of records to return (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of records to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance records retrieved successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true

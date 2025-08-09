@@ -13,6 +13,7 @@ export interface Teacher extends BaseModel {
   email: string;
   phone: string;
   photo_path?: string;
+  is_active: boolean;
 }
 
 // Student model
@@ -24,6 +25,7 @@ export interface Student extends BaseModel {
   email: string;
   phone: string;
   photo_path?: string;
+  is_active: boolean;
 }
 
 // Class model
@@ -50,7 +52,7 @@ export interface Attendance extends BaseModel {
 }
 
 // Attendance status enum
-export type AttendanceStatus = 'present' | 'absent' | 'late';
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
 
 // API Response wrappers
 export interface ApiResponse<T> {
@@ -79,6 +81,7 @@ export interface TeacherFormData {
   email: string;
   phone: string;
   password?: string;
+  retype_password?: string;
 }
 
 export interface StudentFormData {
@@ -89,6 +92,7 @@ export interface StudentFormData {
   email: string;
   phone: string;
   password?: string;
+  retype_password?: string;
 }
 
 export interface ClassFormData {
@@ -100,6 +104,7 @@ export interface ClassFormData {
 export interface AdminFormData {
   email: string;
   password?: string;
+  retype_password?: string;
   is_active: boolean;
 }
 

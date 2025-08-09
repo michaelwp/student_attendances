@@ -27,7 +27,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
   };
 
   const menuItems = [
-    { id: 'dashboard', title: t('menu.dashboard'), icon: '📊', href: '#/' },
+    { id: 'dashboard', title: t('menu.dashboard'), icon: '📊', href: '#/dashboard' },
     { id: 'teachers', title: t('menu.teachers'), icon: '👨‍🏫', href: '#/teachers' },
     { id: 'students', title: t('menu.students'), icon: '👨‍🎓', href: '#/students' },
     { id: 'classes', title: t('menu.classes'), icon: '🏫', href: '#/classes' },
@@ -106,6 +106,15 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                 >
                   {isDark ? '☀️' : '🌙'}
                 </button>
+
+                {/* Student Homepage Link */}
+                <a
+                  href="#/"
+                  className="p-2 rounded-md text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                  title="Student Attendance Page"
+                >
+                  🎓
+                </a>
 
                 {/* User menu */}
                 <div className="relative">

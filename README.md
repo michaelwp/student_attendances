@@ -7,24 +7,31 @@ A comprehensive full-stack student attendance management system with a REST API 
 ### Backend API Features
 - **JWT Authentication**: Secure multi-user authentication (Admin, Teacher, Student) with Redis caching
 - **Role-Based Access Control**: Different permission levels for admins, teachers, and students
-- **Teacher Management**: CRUD operations for teacher accounts with authentication
+- **Teacher Management**: Full CRUD operations with photo upload, password reset, and status management
 - **Class Management**: Create and manage classes with homeroom teacher assignments
-- **Student Management**: Student enrollment with class assignments
-- **Attendance Tracking**: Record and track student attendance with multiple status types
-- **Absence Requests**: Students can request absences with approval workflow
-- **Photo Upload**: Upload and manage profile photos for teachers and students with AWS S3 integration
-- **Admin Dashboard Statistics**: Comprehensive real-time statistics for all entities
-- **Password Management**: Secure password reset and update functionality
-- **RESTful API**: Clean, well-documented REST endpoints
+- **Student Management**: Complete student lifecycle management with class assignments and status tracking
+- **Attendance Tracking**: Comprehensive attendance recording with multiple status types and filtering
+- **Absence Requests**: Student absence request workflow with teacher/admin approval
+- **Photo Management**: Profile photo upload/retrieval for teachers and students via AWS S3
+- **Admin Dashboard**: Real-time statistics and comprehensive user management
+- **Password Security**: Automated password reset and secure update functionality
+- **Status Management**: Active/inactive status control for all user types
+- **RESTful API**: Clean, well-documented REST endpoints with consistent patterns
 - **Database Migrations**: Automated database schema management
-- **Comprehensive Documentation**: Full Swagger/OpenAPI specification
+- **Comprehensive Documentation**: Full Swagger/OpenAPI specification with updated routes
 
 ### Frontend Web Application Features
 - **Modern React/TypeScript**: Built with React 19 and TypeScript for type safety
 - **Multi-language Support**: Full internationalization (i18n) with English and Indonesian
 - **Dark Mode**: System preference detection with manual toggle
 - **Responsive Design**: Mobile-first responsive design with Tailwind CSS
-- **Admin Dashboard**: Comprehensive statistics dashboard with real-time data
+- **Admin Dashboard**: Real-time statistics with active/inactive breakdowns for all entities
+- **Student Homepage**: Public attendance marking page for students with simple ID/password authentication
+- **Complete CRUD Management**: Full create, read, update, delete operations for all business entities
+- **Photo Upload**: Drag-and-drop photo upload with preview and validation
+- **Password Management**: Update/reset password functionality for teachers, students, and admins
+- **Status Management**: Quick toggle for activating/deactivating users
+- **Advanced Data Tables**: Sortable, paginated tables with custom actions
 - **State Management**: Zustand for efficient state management with persistence
 - **Authentication Flow**: Secure login/logout with JWT token management
 - **Professional UI**: Clean, modern interface with accessibility features
@@ -198,6 +205,7 @@ The API implements role-based access control with three user types:
 
 ### Public Endpoints (No Authentication Required)
 - `GET /health` - Check API health status
+- `POST /api/v1/attendance/mark` - Student self-attendance marking (student ID + password)
 
 ### Authentication Endpoints
 - `POST /api/v1/auth/login` - User login (admin, teacher, or student) - Returns JWT token
@@ -238,12 +246,13 @@ The API implements role-based access control with three user types:
 
 ### Attendances (🔒 Authentication Required)
 - `POST /api/v1/attendances` - Create attendance record
-- `GET /api/v1/attendances/{id}` - Get attendance by ID
+- `GET /api/v1/attendances/all` - Get all attendance records (paginated)
+- `GET /api/v1/attendances/attendances-id/{id}` - Get attendance by database ID
 - `GET /api/v1/attendances/student-id/{studentId}` - Get attendance by student
 - `GET /api/v1/attendances/class-id/{classId}` - Get attendance by class
 - `GET /api/v1/attendances/date-range?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` - Get attendance by date range
-- `PUT /api/v1/attendances/{id}` - Update attendance record
-- `DELETE /api/v1/attendances/{id}` - Delete attendance record
+- `PUT /api/v1/attendances/attendances-id/{id}` - Update attendance record
+- `DELETE /api/v1/attendances/attendances-id/{id}` - Delete attendance record (soft delete)
 
 ### Absent Requests (🔒 Authentication Required - Student/Teacher Only)
 - `POST /api/v1/absent-requests` - Create absence request
@@ -316,15 +325,35 @@ The API implements role-based access control with three user types:
   "date": "2024-01-15T00:00:00Z",
   "status": "present",
   "description": "Student was on time",
+  "time_in": "2024-01-15T08:00:00Z",
+  "time_out": "2024-01-15T15:30:00Z",
+  "created_by": 1,
+  "updated_by": 1,
   "created_at": "2024-01-01T00:00:00Z",
-  "updated_at": "2024-01-01T00:00:00Z"
+  "updated_at": "2024-01-01T00:00:00Z",
+  "deleted_at": null,
+  "deleted_by": null
 }
 ```
 
 **Attendance Status Options:**
-- `present`: Student was present
-- `absent`: Student was absent
-- `late`: Student was late
+- `present`: Student was present and on time
+- `absent`: Student was absent without prior notice
+- `late`: Student arrived late but attended class
+- `excused`: Student was absent with valid excuse/permission
+
+**Field Descriptions:**
+- `student_id`: Reference to the student's unique identifier
+- `class_id`: Reference to the class database ID
+- `date`: The date of attendance (ISO 8601 format)
+- `status`: Current attendance status (see options above)
+- `description`: Optional notes about the attendance record
+- `time_in`: Time when student checked in (auto-recorded for self-marking)
+- `time_out`: Time when student checked out (future feature)
+- `created_by`: ID of user who created the record (admin/teacher ID for manual entry, student ID for self-marking)
+- `updated_by`: ID of user who last updated the record
+- `deleted_at`: Timestamp when record was soft-deleted (null if active)
+- `deleted_by`: ID of admin who deleted the record
 
 ### Absent Request
 ```json
@@ -582,7 +611,9 @@ curl -X POST http://localhost:8080/api/v1/students \
   }'
 ```
 
-#### Record Attendance (🔒 Authentication Required)
+#### Attendance Management Examples (🔒 Authentication Required)
+
+##### Create Attendance Record
 ```bash
 curl -X POST http://localhost:8080/api/v1/attendances \
   -H "Content-Type: application/json" \
@@ -593,6 +624,66 @@ curl -X POST http://localhost:8080/api/v1/attendances \
     "date": "2024-01-15T09:00:00Z",
     "status": "present",
     "description": "Student was on time"
+  }'
+```
+
+##### Get All Attendance Records (Paginated)
+```bash
+curl -X GET "http://localhost:8080/api/v1/attendances/all?limit=20&offset=0" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+##### Get Attendance by ID
+```bash
+curl -X GET http://localhost:8080/api/v1/attendances/attendances-id/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+##### Update Attendance Record
+```bash
+curl -X PUT http://localhost:8080/api/v1/attendances/attendances-id/1 \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN" \
+  -d '{
+    "student_id": "STU001",
+    "class_id": 1,
+    "date": "2024-01-15T09:00:00Z",
+    "status": "late",
+    "description": "Student arrived 10 minutes late"
+  }'
+```
+
+##### Delete Attendance Record (Soft Delete)
+```bash
+curl -X DELETE http://localhost:8080/api/v1/attendances/attendances-id/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+##### Get Attendance by Student
+```bash
+curl -X GET http://localhost:8080/api/v1/attendances/student-id/STU001 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+##### Get Attendance by Class
+```bash
+curl -X GET http://localhost:8080/api/v1/attendances/class-id/1 \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+##### Get Attendance by Date Range
+```bash
+curl -X GET "http://localhost:8080/api/v1/attendances/date-range?start_date=2024-01-01&end_date=2024-01-31" \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+#### Student Self-Attendance Marking (No Authentication Required)
+```bash
+curl -X POST http://localhost:8080/api/v1/attendance/mark \
+  -H "Content-Type: application/json" \
+  -d '{
+    "student_id": "STU001",
+    "password": "studentpassword123"
   }'
 ```
 
@@ -1226,7 +1317,40 @@ The web application automatically connects to the API at `http://localhost:8080/
 4. Token is stored securely and used for subsequent API calls
 5. Dashboard loads with personalized statistics and navigation
 
+### Student Attendance Homepage
+A dedicated public page for students to mark their daily attendance:
+
+**Features:**
+- **Public Access**: No admin authentication required - accessible at the root URL (`/`)
+- **Simple Authentication**: Students enter their Student ID and password
+- **One-Click Attendance**: Quick attendance marking with immediate confirmation
+- **Success Feedback**: Visual confirmation with student name and timestamp
+- **Multi-Student Support**: Ability to mark attendance for multiple students in sequence
+- **Responsive Design**: Works seamlessly on mobile devices and tablets
+- **Multilingual**: Supports both English and Indonesian interfaces
+- **Instructions**: Clear usage instructions for students
+
+**Usage:**
+1. Navigate to the root URL of the application
+2. Enter Student ID (e.g., "STU001") and password
+3. Click "Mark Attendance" to record presence
+4. Receive confirmation with name and timestamp
+5. Option to mark attendance for another student or refresh
+
+**API Integration:**
+- Uses `/api/v1/attendance/mark` endpoint for attendance submission
+- Validates student credentials against the database
+- Automatically records attendance with "present" status
+- Returns student name and success confirmation
+
 ## Recent Updates
+
+### Version 2.1 - Enhanced User Experience ✅
+- ✅ **Student Attendance Homepage**: Public page for students to mark attendance with ID/password
+- ✅ **Improved CRUD Operations**: Fixed modal state issues across all admin modules  
+- ✅ **Enhanced Routing**: Public student homepage route with admin authentication separation
+- ✅ **Multilingual Attendance**: Full translation support for student attendance interface
+- ✅ **Mobile-Optimized**: Responsive student attendance page for mobile devices
 
 ### Version 2.0 - Full-Stack Implementation ✅
 - ✅ **JWT Authentication**: Complete multi-user authentication system

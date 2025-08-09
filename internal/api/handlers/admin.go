@@ -1,13 +1,15 @@
 package handlers
 
 import (
+	"context"
+	"log"
+	"os"
+	"strconv"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/michaelwp/student_attendance/internal/models"
 	"github.com/michaelwp/student_attendance/internal/repository"
 	"github.com/michaelwp/student_attendance/pkg"
-	"log"
-	"os"
-	"strconv"
 )
 
 type adminHandler struct {
@@ -35,6 +37,7 @@ func NewAdminHandler(adminRepo repository.AdminRepository) AdminHandler {
 func (h *adminHandler) Create(c *fiber.Ctx) error {
 	var admin models.Admin
 	if err := c.BodyParser(&admin); err != nil {
+		log.Println("error on create admin: failed to parse request body:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
@@ -42,9 +45,27 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 	}
 
 	if admin.Email == "" || admin.Password == "" {
+		log.Println("error on create admin: email and password are required")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.email_and_password_required",
 			"error":         "Email and password are required",
+		})
+	}
+
+	exist, err := h.adminRepo.IsAdminExist(c.Context(), admin.Email)
+	if err != nil {
+		log.Println("error on create admin: failed to check if admin exists:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_check_if_admin_exists",
+			"error":         "Failed to check if admin exists",
+		})
+	}
+
+	if exist {
+		log.Println("error on create admin: admin already exists")
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.admin_already_exists",
+			"error":         "Admin already exists",
 		})
 	}
 
@@ -91,9 +112,6 @@ func (h *adminHandler) GetByID(c *fiber.Ctx) error {
 			"error":         "Invalid admin ID",
 		})
 	}
-
-	// TODO: Log the adminID for debugging purposes
-	log.Println("adminID:", adminID)
 
 	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 32)
 	if err != nil {
@@ -283,27 +301,19 @@ func (h *adminHandler) Delete(c *fiber.Ctx) error {
 	})
 }
 
-// UpdateAdminPassword godoc
+// UpdatePassword godoc
 // @Summary Update admin password
-// @Description Update an admin's password
+// @Description Update an admin's password by providing old and new passwords
 // @Tags Admins
 // @Accept json
 // @Produce json
-// @Param id path int true "Admin database ID"
-// @Param request body map[string]string true "Password update request"
+// @Param request body object{old_password=string,new_password=string} true "Password update request"
 // @Success 200 {object} map[string]interface{} "Password updated successfully"
-// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 400 {object} map[string]interface{} "Invalid request or password"
+// @Failure 404 {object} map[string]interface{} "Admin not found"
 // @Failure 500 {object} map[string]interface{} "Internal server error"
-// @Router /admins/{id}/password [put]
+// @Router /admins/password [put]
 func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
-	email := c.Params("email")
-	if email == "" {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"translate_key": "error.email_required",
-			"error":         "Email is required",
-		})
-	}
-
 	var request struct {
 		OldPassword string `json:"old_password"`
 		NewPassword string `json:"new_password"`
@@ -323,23 +333,42 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 		})
 	}
 
-	exist, err := h.adminRepo.IsAdminExist(c.Context(), email)
-	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate_key": "error.admin.check.failed",
-			"error":         "Failed to check admin existence",
+	adminID := c.Locals("userID")
+	if adminID == nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID",
 		})
 	}
 
-	if !exist {
+	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 64)
+	if err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_admin_id",
+			"error":         "Invalid admin ID format",
+		})
+	}
+
+	admin, err := h.adminRepo.GetByID(c.Context(), uint(adminIDUint))
+	if err != nil {
+		log.Println("error on update password: failed to get admin:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_admin",
+			"error":         "Failed to get admin",
+		})
+	}
+
+	if admin == nil {
+		log.Println("error on update password: admin not found")
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
-			"translate_key": "error.admin.not.found",
+			"translate_key": "error.admin_not_found",
 			"error":         "Admin not found",
 		})
 	}
 
-	storedPassword, err := h.adminRepo.GetPasswordByEmail(c.Context(), email)
+	storedPassword, err := h.adminRepo.GetPasswordByEmail(c.Context(), admin.Email)
 	if err != nil {
+		log.Println("error on update password: failed to retrieve stored password:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.password.retrieval.failed",
 			"error":         "Failed to retrieve stored password",
@@ -347,26 +376,19 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	}
 
 	if err := pkg.ComparePasswords(storedPassword, request.OldPassword); err != nil {
+		log.Println("error on update password: old password does not match:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid.old.password",
 			"error":         "Invalid old password",
 		})
 	}
 
-	// Hash password
-	round, _ := strconv.Atoi(os.Getenv("ROUND"))
-	hashedPassword, err := pkg.HashPassword(request.NewPassword, round)
+	err = h.updateCurrentPassword(c.Context(), admin.Email, request.NewPassword)
 	if err != nil {
+		log.Println("error on update password: failed to update current password:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate_key": "error.password_hashing_failed",
-			"error":         "Failed to hash password",
-		})
-	}
-
-	if err := h.adminRepo.UpdatePassword(c.Context(), email, hashedPassword); err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"translate_key": "error.failed_to_update_password",
-			"error":         "Failed to update password",
+			"translate_key": "error.password.update.failed",
+			"error":         "Failed to update current password",
 		})
 	}
 
@@ -450,4 +472,84 @@ func (h *adminHandler) GetStat(c *fiber.Ctx) error {
 		"message":       "Statistics retrieved successfully",
 		"data":          stats,
 	})
+}
+
+// ResetPassword godoc
+// @Summary Reset admin password
+// @Description Reset an admin's password to a new randomly generated password
+// @Tags Admins
+// @Accept json
+// @Produce json
+// @Param email query string true "Admin email"
+// @Success 200 {object} map[string]interface{} "Password reset successfully"
+// @Failure 400 {object} map[string]interface{} "Email is required"
+// @Failure 404 {object} map[string]interface{} "Admin not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /admins/{id}/reset-password [put]
+func (h *adminHandler) ResetPassword(c *fiber.Ctx) error {
+	email := c.Query("email", "")
+	if email == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.email_required",
+			"error":         "Email is required",
+		})
+	}
+
+	// Check if the admin exists
+	exist, err := h.adminRepo.IsAdminExist(c.Context(), email)
+	if err != nil {
+		log.Println("error on reset password: failed to check admin existence:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.admin.check.failed",
+			"error":         "Failed to check admin existence",
+		})
+	}
+
+	if !exist {
+		log.Println("error on reset password: admin not found")
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate_key": "error.admin.not.found",
+			"error":         "Admin not found",
+		})
+	}
+
+	password, err := pkg.GeneratePassword(12)
+	if err != nil {
+		log.Println("error on reset password: failed to generate password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.password.generation.failed",
+			"error":         "Failed to generate password",
+		})
+	}
+
+	err = h.adminRepo.UpdatePassword(c.Context(), email, password)
+	if err != nil {
+		log.Println("error on reset password: failed to update current password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.password.reset",
+		"message":       "Password reset successfully",
+		"newPassword":   password,
+	})
+}
+
+func (h *adminHandler) updateCurrentPassword(ctx context.Context, email string, password string) error {
+	round, _ := strconv.Atoi(os.Getenv("SALT"))
+	hashPassword, err := pkg.HashPassword(password, round)
+	if err != nil {
+		log.Println("error on hash password:", err)
+		return err
+	}
+
+	if err := h.adminRepo.UpdatePassword(ctx, email, hashPassword); err != nil {
+		log.Println("error on update password:", err)
+		return err
+	}
+
+	return nil
 }

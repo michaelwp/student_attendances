@@ -147,6 +147,58 @@ definitions:
 info:
   contact: {}
 paths:
+  /attendance/mark:
+    post:
+      consumes:
+      - application/json
+      description: Allow students to mark their own attendance using student ID and password
+      parameters:
+      - description: Student credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          type: object
+          properties:
+            student_id:
+              type: string
+            password:
+              type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance marked successfully
+          schema:
+            type: object
+            properties:
+              student_name:
+                type: string
+              message:
+                type: string
+        "400":
+          description: Invalid request body or missing parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid student credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Attendance already marked today
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark student attendance (Public endpoint)
+      tags:
+      - Public
   /absent-requests:
     post:
       consumes:
@@ -709,6 +761,37 @@ paths:
             additionalProperties: true
             type: object
       summary: Create attendance record
+      tags:
+      - Attendances
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all attendance records with pagination
+      parameters:
+      - default: 10
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance records retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all attendance records
       tags:
       - Attendances
   /attendances/{id}:
