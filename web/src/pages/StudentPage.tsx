@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../utils/toast-helpers';
 import { studentDashboardApi } from '../services/api';
@@ -6,6 +6,7 @@ import StudentPasswordUpdate from '../components/StudentPasswordUpdate';
 import StudentProfileView from '../components/StudentProfileView';
 import StudentAbsentRequestForm from '../components/StudentAbsentRequestForm';
 import StudentAbsentRequestList from '../components/StudentAbsentRequestList';
+import type { StudentAbsentRequestListHandle } from '../components/StudentAbsentRequestList';
 import type { StudentProfile } from '../types/models';
 
 export const StudentPage: React.FC = () => {
@@ -14,6 +15,7 @@ export const StudentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState('profile');
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const absentRequestListRef = useRef<StudentAbsentRequestListHandle>(null);
 
   useEffect(() => {
     fetchProfile();
@@ -32,6 +34,13 @@ export const StudentPage: React.FC = () => {
       );
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleRequestCreated = () => {
+    // Refresh the absent request list when a new request is created
+    if (absentRequestListRef.current) {
+      absentRequestListRef.current.refreshRequests();
     }
   };
 
@@ -145,10 +154,10 @@ export const StudentPage: React.FC = () => {
         {activeTab === 'absent_requests' && (
           <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             <div className="xl:col-span-1">
-              <StudentAbsentRequestForm onRequestCreated={() => {}} />
+              <StudentAbsentRequestForm onRequestCreated={handleRequestCreated} />
             </div>
             <div className="xl:col-span-2">
-              <StudentAbsentRequestList />
+              <StudentAbsentRequestList ref={absentRequestListRef} />
             </div>
           </div>
         )}

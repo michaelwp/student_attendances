@@ -304,6 +304,7 @@
     "instruction_2": "Enter your password (same as your login password)",
     "instruction_3": "Click 'Mark Attendance' to record your presence",
     "instruction_4": "You can only mark attendance once per day",
+    "dashboard_access": "Need access to your student dashboard?",
     "login_to_dashboard": "Login to Dashboard"
   },
   "student_page": {

@@ -1,10 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect, forwardRef, useImperativeHandle } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useToast } from '../utils/toast-helpers';
 import { absentRequestApi } from '../services/api';
 import type { AbsentRequest } from '../types/models';
 
-export const StudentAbsentRequestList: React.FC = () => {
+export interface StudentAbsentRequestListHandle {
+  refreshRequests: () => void;
+}
+
+export const StudentAbsentRequestList = forwardRef<StudentAbsentRequestListHandle>((_props, ref) => {
   const { t } = useTranslation();
   const { showError } = useToast();
   const [requests, setRequests] = useState<AbsentRequest[]>([]);
@@ -18,6 +22,10 @@ export const StudentAbsentRequestList: React.FC = () => {
   useEffect(() => {
     fetchRequests();
   }, [pagination.current, pagination.pageSize]);
+
+  useImperativeHandle(ref, () => ({
+    refreshRequests: fetchRequests,
+  }));
 
   const fetchRequests = async () => {
     try {
@@ -239,6 +247,6 @@ export const StudentAbsentRequestList: React.FC = () => {
       </div>
     </div>
   );
-};
+});
 
 export default StudentAbsentRequestList;

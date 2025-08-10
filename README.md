@@ -1393,6 +1393,7 @@ A dedicated public page for students to mark their daily attendance:
 - **Responsive Design**: Works seamlessly on mobile devices and tablets
 - **Multilingual**: Supports both English and Indonesian interfaces
 - **Instructions**: Clear usage instructions for students
+- **Dashboard Access**: Direct navigation link to student login page for accessing the comprehensive student portal
 
 **Usage:**
 1. Navigate to the root URL of the application
@@ -1416,6 +1417,7 @@ A comprehensive authenticated dashboard for students to manage their academic pr
 - **Password Management**: Self-service password updates with current password verification
 - **Attendance Statistics**: Real-time attendance tracking with percentage calculations
 - **Absent Request Management**: Create, view, and manage absence requests with status tracking
+- **Auto-Refresh Lists**: Absent request list automatically updates when new requests are submitted
 - **Responsive Interface**: Optimized for both desktop and mobile devices
 - **Real-Time Updates**: Live statistics and immediate feedback for all actions
 - **Multilingual Support**: Available in English and Indonesian
@@ -1435,6 +1437,7 @@ A comprehensive authenticated dashboard for students to manage their academic pr
 3. **Absent Requests Tab**:
    - Paginated list of all absence requests with status badges
    - Create new absence requests with date and reason validation
+   - Real-time list updates when new requests are created (auto-refresh functionality)
    - Delete pending requests (approved/rejected cannot be modified)
    - Status tracking (Pending, Approved, Rejected) with color-coded indicators
 

@@ -305,6 +305,7 @@
     "instruction_2": "Masukkan kata sandi Anda (sama dengan kata sandi login)",
     "instruction_3": "Klik 'Lakukan Presensi' untuk mencatat kehadiran",
     "instruction_4": "Anda hanya dapat melakukan presensi sekali per hari",
+    "dashboard_access": "Butuh akses ke dashboard siswa Anda?",
     "login_to_dashboard": "Masuk ke Dashboard"
   },
   "student_page": {
