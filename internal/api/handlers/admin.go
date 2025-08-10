@@ -73,6 +73,7 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 	round, _ := strconv.Atoi(os.Getenv("ROUND"))
 	hashedPassword, err := pkg.HashPassword(admin.Password, round)
 	if err != nil {
+		log.Println("error on create admin: failed to hash password:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.password_hashing_failed",
 			"error":         "Failed to hash password",
@@ -81,6 +82,7 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 	admin.Password = hashedPassword
 
 	if err := h.adminRepo.Create(c.Context(), &admin); err != nil {
+		log.Println("error on create admin: failed to create admin:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_create_admin",
 			"error":         "Failed to create admin",
@@ -107,6 +109,7 @@ func (h *adminHandler) Create(c *fiber.Ctx) error {
 func (h *adminHandler) GetByID(c *fiber.Ctx) error {
 	adminID := c.Locals("userID")
 	if adminID == nil {
+		log.Println("error on get admin by id: invalid admin id")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID",
@@ -115,6 +118,7 @@ func (h *adminHandler) GetByID(c *fiber.Ctx) error {
 
 	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 32)
 	if err != nil {
+		log.Println("error on get admin by id: invalid admin id format:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID format",
@@ -123,6 +127,7 @@ func (h *adminHandler) GetByID(c *fiber.Ctx) error {
 
 	admin, err := h.adminRepo.GetByID(c.Context(), uint(adminIDUint))
 	if err != nil {
+		log.Println("error on get admin by id: failed to get admin:", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"translate_key": "error.admin_not_found",
 			"error":         "Admin not found",
@@ -151,6 +156,7 @@ func (h *adminHandler) GetByID(c *fiber.Ctx) error {
 func (h *adminHandler) GetByEmail(c *fiber.Ctx) error {
 	email := c.Params("email")
 	if email == "" {
+		log.Println("error on get admin by email: email is required")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.email_required",
 			"error":         "Email is required",
@@ -159,6 +165,7 @@ func (h *adminHandler) GetByEmail(c *fiber.Ctx) error {
 
 	admin, err := h.adminRepo.GetByEmail(c.Context(), email)
 	if err != nil {
+		log.Println("error on get admin by email: failed to get admin:", err)
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
 			"translate_key": "error.admin_not_found",
 			"error":         "Admin not found",
@@ -194,6 +201,7 @@ func (h *adminHandler) GetAll(c *fiber.Ctx) error {
 
 	admins, err := h.adminRepo.GetAll(c.Context(), limit, offset)
 	if err != nil {
+		log.Println("error on get all admins: failed to get admins:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_get_admins",
 			"error":         "Failed to get admins",
@@ -206,6 +214,7 @@ func (h *adminHandler) GetAll(c *fiber.Ctx) error {
 
 	totalAdmins, err := h.adminRepo.GetTotalAdmins(c.Context())
 	if err != nil {
+		log.Println("error on get all admins: failed to get total admins:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_get_total_admins",
 			"error":         "Failed to get total admins",
@@ -238,6 +247,7 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
+		log.Println("error on update admin: invalid admin id:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID 2",
@@ -246,6 +256,7 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 
 	var admin models.Admin
 	if err := c.BodyParser(&admin); err != nil {
+		log.Println("error on update admin: invalid request body:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
@@ -254,6 +265,7 @@ func (h *adminHandler) Update(c *fiber.Ctx) error {
 
 	admin.ID = uint(id)
 	if err := h.adminRepo.Update(c.Context(), &admin); err != nil {
+		log.Println("error on update admin: failed to update admin:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_update_admin",
 			"error":         "Failed to update admin",
@@ -282,6 +294,7 @@ func (h *adminHandler) Delete(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
+		log.Println("error on delete admin: invalid admin id:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID 3",
@@ -289,6 +302,7 @@ func (h *adminHandler) Delete(c *fiber.Ctx) error {
 	}
 
 	if err := h.adminRepo.Delete(c.Context(), uint(id)); err != nil {
+		log.Println("error on delete admin: failed to delete admin:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_delete_admin",
 			"error":         "Failed to delete admin",
@@ -320,6 +334,7 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&request); err != nil {
+		log.Println("error on update password: invalid request body:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
@@ -327,6 +342,7 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 	}
 
 	if request.NewPassword == "" || request.OldPassword == "" {
+		log.Println("error on update password: password is required")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.password.required",
 			"error":         "Password is required",
@@ -335,6 +351,7 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 
 	adminID := c.Locals("userID")
 	if adminID == nil {
+		log.Println("error on update password: invalid admin id")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID",
@@ -343,6 +360,7 @@ func (h *adminHandler) UpdatePassword(c *fiber.Ctx) error {
 
 	adminIDUint, err := strconv.ParseUint(adminID.(string), 10, 64)
 	if err != nil {
+		log.Println("error on update password: invalid admin id format:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID format",
@@ -414,6 +432,7 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
+		log.Println("error on set admin active status: invalid admin id:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_admin_id",
 			"error":         "Invalid admin ID 4",
@@ -425,6 +444,7 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	}
 
 	if err := c.BodyParser(&request); err != nil {
+		log.Println("error on set admin active status: invalid request body:", err)
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.invalid_request_body",
 			"error":         "Invalid request body",
@@ -432,6 +452,7 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 	}
 
 	if err := h.adminRepo.SetActiveStatus(c.Context(), uint(id), request.IsActive); err != nil {
+		log.Println("error on set admin active status: failed to update admin status:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_update_status",
 			"error":         "Failed to update admin status",
@@ -461,6 +482,7 @@ func (h *adminHandler) SetActiveStatus(c *fiber.Ctx) error {
 func (h *adminHandler) GetStat(c *fiber.Ctx) error {
 	stats, err := h.adminRepo.GetDashboardStats(c.Context())
 	if err != nil {
+		log.Println("error on get stats: failed to get statistics:", err)
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"translate_key": "error.failed_to_get_stats",
 			"error":         "Failed to get statistics",
@@ -489,6 +511,7 @@ func (h *adminHandler) GetStat(c *fiber.Ctx) error {
 func (h *adminHandler) ResetPassword(c *fiber.Ctx) error {
 	email := c.Query("email", "")
 	if email == "" {
+		log.Println("error on reset password: email is required")
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"translate_key": "error.email_required",
 			"error":         "Email is required",

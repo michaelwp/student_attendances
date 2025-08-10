@@ -10,6 +10,7 @@ import ClassesPage from './pages/ClassesPage';
 import AttendancePage from './pages/AttendancePage';
 import AdminsPage from './pages/AdminsPage';
 import StudentHomepage from './pages/StudentHomepage';
+import StudentPage from './pages/StudentPage';
 import Layout from './components/Layout';
 import { ToastContainer } from './components/Toast';
 import './i18n';
@@ -63,7 +64,17 @@ const App: React.FC = () => {
     return <LoginPage />;
   }
 
-  const MainContent = () => {    
+  // Show student-specific page without layout for student users
+  if (user?.type === 'student') {
+    return (
+      <>
+        <StudentPage />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  const MainContent = () => {
     switch (path) {
       case '/teachers':
         return <TeachersPage />;

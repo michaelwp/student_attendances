@@ -116,12 +116,14 @@ func SetupRoutes(
 			models.UserTypeTeacher.String()),
 	)
 	absentRequests.Post("/", h.AbsentRequest.Create)
-	absentRequests.Get("/:id", h.AbsentRequest.GetByID)
+	absentRequests.Get("/absent-request-id/:id", h.AbsentRequest.GetByID)
 	absentRequests.Get("/student-id/:studentId", h.AbsentRequest.GetByStudent)
 	absentRequests.Get("/class-id/:classId", h.AbsentRequest.GetByClass)
-	absentRequests.Get("/pending", h.AbsentRequest.GetPending)
-	absentRequests.Patch("/:id/status", h.AbsentRequest.UpdateStatus)
-	absentRequests.Delete("/:id", h.AbsentRequest.Delete)
+	absentRequests.Get("/absent-request-id/pending", h.AbsentRequest.GetPending)
+ absentRequests.Patch("/absent-request-id/:id/status", h.AbsentRequest.UpdateStatus)
+	absentRequests.Put("/absent-request-id/:id", h.AbsentRequest.UpdateByCurrentStudent)
+	absentRequests.Delete("/absent-request-id/:id", h.AbsentRequest.Delete)
+	absentRequests.Get("/current-student", h.AbsentRequest.GetByCurrentStudent)
 
 	// Admin routes
 	admins := api.Group("/admins",
@@ -144,6 +146,12 @@ func SetupRoutes(
 	auth.Post("/login", h.Auth.Login)
 	auth.Post("/logout", middleware.JWTMiddleware(redisClient), h.Auth.Logout)
 
+	// Student dashboard routes (student authentication required)
+	studentDashboard := api.Group("/student", middleware.JWTMiddleware(redisClient), middleware.RequireUserType(models.UserTypeStudent.String()))
+	studentDashboard.Get("/profile", h.Student.GetProfile)
+	studentDashboard.Put("/profile", h.Student.UpdateProfile)
+ studentDashboard.Put("/password", h.Student.UpdateCurrentPassword)
+	
 	// Public student attendance marking (no authentication required)
 	api.Post("/attendance/mark", h.Attendance.MarkAttendance)
 }

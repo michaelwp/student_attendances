@@ -19,9 +19,9 @@ func NewHandlers(dep *HandlerDependencies) *Handlers {
 	return &Handlers{
 		Teacher:       NewTeacherHandler(dep.Repositories.Teacher, dep.S3Client, dep.S3Config),
 		Class:         NewClassHandler(dep.Repositories.Class),
-		Student:       NewStudentHandler(dep.Repositories.Student, dep.S3Client, dep.S3Config),
+		Student:       NewStudentHandler(dep.Repositories.Student, dep.S3Client, dep.S3Config, dep.Repositories.Attendance),
 		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance, dep.Repositories.Student),
-		AbsentRequest: NewAbsentRequestHandler(dep.Repositories.AbsentRequest),
+		AbsentRequest: NewAbsentRequestHandler(dep.Repositories.AbsentRequest, dep.Repositories.Student),
 		Admin:         NewAdminHandler(dep.Repositories.Admin),
 		Auth:          NewAuthHandler(dep.Repositories.Admin, dep.Repositories.Teacher, dep.Repositories.Student, dep.RedisClient),
 	}

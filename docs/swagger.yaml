@@ -1,33 +1,11 @@
 definitions:
-  github_com_michaelwp_student_attendance_internal_models.AbsentRequest:
+  github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate:
     properties:
-      class_id:
-        type: integer
-      created_at:
-        type: string
-      id:
-        type: integer
       reason:
         type: string
       request_date:
         type: string
-      status:
-        $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus'
-      student_id:
-        type: string
-      updated_at:
-        type: string
     type: object
-  github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus:
-    enum:
-    - pending
-    - approved
-    - rejected
-    type: string
-    x-enum-varnames:
-    - AbsentRequestStatusPending
-    - AbsentRequestStatusApproved
-    - AbsentRequestStatusRejected
   github_com_michaelwp_student_attendance_internal_models.Admin:
     properties:
       created_at:
@@ -40,6 +18,8 @@ definitions:
         type: boolean
       last_login:
         type: string
+      password:
+        type: string
       updated_at:
         type: string
     type: object
@@ -49,8 +29,14 @@ definitions:
         type: integer
       created_at:
         type: string
+      created_by:
+        type: integer
       date:
         type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: integer
       description:
         type: string
       id:
@@ -59,19 +45,27 @@ definitions:
         $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AttendanceStatus'
       student_id:
         type: string
+      time_in:
+        type: string
+      time_out:
+        type: string
       updated_at:
         type: string
+      updated_by:
+        type: integer
     type: object
   github_com_michaelwp_student_attendance_internal_models.AttendanceStatus:
     enum:
     - present
     - absent
     - late
+    - excused
     type: string
     x-enum-varnames:
     - AttendanceStatusPresent
     - AttendanceStatusAbsent
     - AttendanceStatusLate
+    - AttendanceStatusExcused
   github_com_michaelwp_student_attendance_internal_models.Class:
     properties:
       created_at:
@@ -93,15 +87,25 @@ definitions:
         type: integer
       created_at:
         type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: integer
       email:
         type: string
       first_name:
         type: string
       id:
         type: integer
+      is_active:
+        type: boolean
       last_name:
         type: string
+      password:
+        type: string
       phone:
+        type: string
+      photo_path:
         type: string
       student_id:
         type: string
@@ -112,12 +116,18 @@ definitions:
     properties:
       created_at:
         type: string
+      deleted_at:
+        type: string
+      deleted_by:
+        type: integer
       email:
         type: string
       first_name:
         type: string
       id:
         type: integer
+      is_active:
+        type: boolean
       last_name:
         type: string
       phone:
@@ -147,58 +157,6 @@ definitions:
 info:
   contact: {}
 paths:
-  /attendance/mark:
-    post:
-      consumes:
-      - application/json
-      description: Allow students to mark their own attendance using student ID and password
-      parameters:
-      - description: Student credentials
-        in: body
-        name: request
-        required: true
-        schema:
-          type: object
-          properties:
-            student_id:
-              type: string
-            password:
-              type: string
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Attendance marked successfully
-          schema:
-            type: object
-            properties:
-              student_name:
-                type: string
-              message:
-                type: string
-        "400":
-          description: Invalid request body or missing parameters
-          schema:
-            additionalProperties: true
-            type: object
-        "401":
-          description: Invalid student credentials
-          schema:
-            additionalProperties: true
-            type: object
-        "409":
-          description: Attendance already marked today
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Mark student attendance (Public endpoint)
-      tags:
-      - Public
   /absent-requests:
     post:
       consumes:
@@ -210,7 +168,7 @@ paths:
         name: request
         required: true
         schema:
-          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequest'
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate'
       produces:
       - application/json
       responses:
@@ -338,6 +296,55 @@ paths:
       summary: Update absent request status
       tags:
       - Absent Requests
+  /absent-requests/absent-request-id/{id}:
+    put:
+      consumes:
+      - application/json
+      description: Update an absent request's date and reason if it belongs to the
+        current student and is pending
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Absent request update data
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent request updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Absent request not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update absent request by current student
+      tags:
+      - Absent Requests
   /absent-requests/class-id/{classId}:
     get:
       consumes:
@@ -378,6 +385,43 @@ paths:
             additionalProperties: true
             type: object
       summary: Get absent requests by class
+      tags:
+      - Absent Requests
+  /absent-requests/current-student:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve absent requests for the currently authenticated student
+      parameters:
+      - default: 10
+        description: Number of requests to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of requests to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent requests retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid student ID
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get absent requests for current student
       tags:
       - Absent Requests
   /absent-requests/pending:
@@ -618,35 +662,32 @@ paths:
       summary: Update admin
       tags:
       - Admins
-  /admins/{id}/password:
+  /admins/{id}/reset-password:
     put:
       consumes:
       - application/json
-      description: Update an admin's password
+      description: Reset an admin's password to a new randomly generated password
       parameters:
-      - description: Admin database ID
-        in: path
-        name: id
+      - description: Admin email
+        in: query
+        name: email
         required: true
-        type: integer
-      - description: Password update request
-        in: body
-        name: request
-        required: true
-        schema:
-          additionalProperties:
-            type: string
-          type: object
+        type: string
       produces:
       - application/json
       responses:
         "200":
-          description: Password updated successfully
+          description: Password reset successfully
           schema:
             additionalProperties: true
             type: object
         "400":
-          description: Invalid request
+          description: Email is required
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Admin not found
           schema:
             additionalProperties: true
             type: object
@@ -655,7 +696,7 @@ paths:
           schema:
             additionalProperties: true
             type: object
-      summary: Update admin password
+      summary: Reset admin password
       tags:
       - Admins
   /admins/{id}/status:
@@ -730,7 +771,156 @@ paths:
       summary: Get admin by email
       tags:
       - Admins
+  /admins/password:
+    put:
+      consumes:
+      - application/json
+      description: Update an admin's password by providing old and new passwords
+      parameters:
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            new_password:
+              type: string
+            old_password:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request or password
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Admin not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Update admin password
+      tags:
+      - Admins
+  /admins/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get comprehensive dashboard statistics including admins, teachers,
+        students, classes and today's attendance
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get system statistics
+      tags:
+      - Admins
+  /attendance/mark:
+    post:
+      consumes:
+      - application/json
+      description: Allow students to mark their own attendance using student ID and
+        password
+      parameters:
+      - description: Student credentials
+        in: body
+        name: request
+        required: true
+        schema:
+          properties:
+            password:
+              type: string
+            student_id:
+              type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance marked successfully
+          schema:
+            properties:
+              message:
+                type: string
+              student_name:
+                type: string
+            type: object
+        "400":
+          description: Invalid request body or missing parameters
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Invalid student credentials
+          schema:
+            additionalProperties: true
+            type: object
+        "409":
+          description: Attendance already marked today
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Mark student attendance (Public endpoint)
+      tags:
+      - Public
   /attendances:
+    get:
+      consumes:
+      - application/json
+      description: Retrieve all attendance records with pagination
+      parameters:
+      - default: 10
+        description: Number of records to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of records to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Attendance records retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get all attendance records
+      tags:
+      - Attendances
     post:
       consumes:
       - application/json
@@ -761,37 +951,6 @@ paths:
             additionalProperties: true
             type: object
       summary: Create attendance record
-      tags:
-      - Attendances
-    get:
-      consumes:
-      - application/json
-      description: Retrieve all attendance records with pagination
-      parameters:
-      - default: 10
-        description: Number of records to return (max 100)
-        in: query
-        name: limit
-        type: integer
-      - default: 0
-        description: Number of records to skip
-        in: query
-        name: offset
-        type: integer
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: Attendance records retrieved successfully
-          schema:
-            additionalProperties: true
-            type: object
-        "500":
-          description: Internal server error
-          schema:
-            additionalProperties: true
-            type: object
-      summary: Get all attendance records
       tags:
       - Attendances
   /attendances/{id}:
@@ -1290,6 +1449,131 @@ paths:
       summary: Get classes by teacher
       tags:
       - Classes
+  /student/password:
+    put:
+      consumes:
+      - application/json
+      description: Update the currently authenticated student's password
+      parameters:
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update current student password
+      tags:
+      - Student Dashboard
+  /student/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get the profile of the currently authenticated student with attendance
+        statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get student profile
+      tags:
+      - Student Dashboard
+    put:
+      consumes:
+      - application/json
+      description: Update the profile information of the currently authenticated student
+      parameters:
+      - description: Profile update data with first_name, last_name, email, phone
+        in: body
+        name: profile
+        required: true
+        schema:
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request body
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Student not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update student profile
+      tags:
+      - Student Dashboard
   /students:
     get:
       consumes:
@@ -1557,6 +1841,28 @@ paths:
             additionalProperties: true
             type: object
       summary: Get students by class
+      tags:
+      - Students
+  /students/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get statistics about students including total active and inactive
+        counts
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get student statistics
       tags:
       - Students
   /students/student-id/{studentId}:
@@ -1904,6 +2210,27 @@ paths:
             additionalProperties: true
             type: object
       summary: Upload teacher photo
+      tags:
+      - Teachers
+  /teachers/stats:
+    get:
+      consumes:
+      - application/json
+      description: Get various statistics about teachers in the system
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Statistics retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Get teacher statistics
       tags:
       - Teachers
   /teachers/teacher-id/{teacherId}:

@@ -56,6 +56,7 @@ type StudentRepository interface {
 	IsStudentExist(ctx context.Context, studentID string) (bool, error)
 	GetStats(ctx context.Context) (*models.StudentStats, error)
 	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
+	GetByIDWithClassName(ctx context.Context, id uint) (*models.StudentsWithClassName, error)
 }
 
 // AttendanceRepository defines the interface for attendance operations
@@ -71,6 +72,7 @@ type AttendanceRepository interface {
 	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
 	GetAll(ctx context.Context, limit, offset int) ([]*models.Attendance, error)
 	GetCount(ctx context.Context) (int, error)
+	GetAttendanceStats(ctx context.Context, studentID uint) (*models.AttendanceWithStats, error)
 }
 
 // AbsentRequestRepository defines the interface for absent request operations
@@ -83,6 +85,8 @@ type AbsentRequestRepository interface {
 	GetPending(ctx context.Context, limit, offset int) ([]*models.AbsentRequest, error)
 	Update(ctx context.Context, request *models.AbsentRequest) error
 	Delete(ctx context.Context, id uint) error
+	GetTotalAbsentRequests(ctx context.Context) (int, error)
+	UpdateDeleteInfo(ctx context.Context, id uint, studentID uint, deletedBy uint) error
 }
 
 // AdminRepository defines the interface for admin operations

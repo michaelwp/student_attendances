@@ -15,64 +15,6 @@ const docTemplate = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/attendance/mark": {
-            "post": {
-                "description": "Allow students to mark their own attendance using student ID and password",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Public"
-                ],
-                "summary": "Mark student attendance (Public endpoint)",
-                "parameters": [
-                    {
-                        "description": "Student credentials",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "student_id": { "type": "string" },
-                                "password": { "type": "string" }
-                            }
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Attendance marked successfully",
-                        "schema": {
-                            "type": "object",
-                            "properties": {
-                                "student_name": { "type": "string" },
-                                "message": { "type": "string" }
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Invalid request body or missing parameters",
-                        "schema": { "type": "object", "additionalProperties": true }
-                    },
-                    "401": {
-                        "description": "Invalid student credentials",
-                        "schema": { "type": "object", "additionalProperties": true }
-                    },
-                    "409": {
-                        "description": "Attendance already marked today",
-                        "schema": { "type": "object", "additionalProperties": true }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": { "type": "object", "additionalProperties": true }
-                    }
-                }
-            }
-        },
         "/absent-requests": {
             "post": {
                 "description": "Create a new absence request",
@@ -93,7 +35,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequest"
+                            "$ref": "#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate"
                         }
                     }
                 ],
@@ -107,6 +49,76 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/absent-requests/absent-request-id/{id}": {
+            "put": {
+                "description": "Update an absent request's date and reason if it belongs to the current student and is pending",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Absent Requests"
+                ],
+                "summary": "Update absent request by current student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "Absent request ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Absent request update data",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Absent request updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Absent request not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -168,6 +180,60 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid class ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/absent-requests/current-student": {
+            "get": {
+                "description": "Retrieve absent requests for the currently authenticated student",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Absent Requests"
+                ],
+                "summary": "Get absent requests for current student",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of requests to return (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of requests to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Absent requests retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid student ID",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -587,6 +653,101 @@ const docTemplate = `{
                 }
             }
         },
+        "/admins/password": {
+            "put": {
+                "description": "Update an admin's password by providing old and new passwords",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admins"
+                ],
+                "summary": "Update admin password",
+                "parameters": [
+                    {
+                        "description": "Password update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "new_password": {
+                                    "type": "string"
+                                },
+                                "old_password": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request or password",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Admin not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/admins/stats": {
+            "get": {
+                "description": "Get comprehensive dashboard statistics including admins, teachers, students, classes and today's attendance",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Admins"
+                ],
+                "summary": "Get system statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/admins/{id}": {
             "get": {
                 "description": "Retrieve a specific admin by their database ID",
@@ -733,9 +894,9 @@ const docTemplate = `{
                 }
             }
         },
-        "/admins/{id}/password": {
+        "/admins/{id}/reset-password": {
             "put": {
-                "description": "Update an admin's password",
+                "description": "Reset an admin's password to a new randomly generated password",
                 "consumes": [
                     "application/json"
                 ],
@@ -745,38 +906,33 @@ const docTemplate = `{
                 "tags": [
                     "Admins"
                 ],
-                "summary": "Update admin password",
+                "summary": "Reset admin password",
                 "parameters": [
                     {
-                        "type": "integer",
-                        "description": "Admin database ID",
-                        "name": "id",
-                        "in": "path",
+                        "type": "string",
+                        "description": "Admin email",
+                        "name": "email",
+                        "in": "query",
                         "required": true
-                    },
-                    {
-                        "description": "Password update request",
-                        "name": "request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": {
-                                "type": "string"
-                            }
-                        }
                     }
                 ],
                 "responses": {
                     "200": {
-                        "description": "Password updated successfully",
+                        "description": "Password reset successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
                         }
                     },
                     "400": {
-                        "description": "Invalid request",
+                        "description": "Email is required",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Admin not found",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -851,7 +1007,130 @@ const docTemplate = `{
                 }
             }
         },
+        "/attendance/mark": {
+            "post": {
+                "description": "Allow students to mark their own attendance using student ID and password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Public"
+                ],
+                "summary": "Mark student attendance (Public endpoint)",
+                "parameters": [
+                    {
+                        "description": "Student credentials",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "password": {
+                                    "type": "string"
+                                },
+                                "student_id": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance marked successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": {
+                                    "type": "string"
+                                },
+                                "student_name": {
+                                    "type": "string"
+                                }
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body or missing parameters",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Invalid student credentials",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "409": {
+                        "description": "Attendance already marked today",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/attendances": {
+            "get": {
+                "description": "Retrieve all attendance records with pagination",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Attendances"
+                ],
+                "summary": "Get all attendance records",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Number of records to return (max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of records to skip",
+                        "name": "offset",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Attendance records retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
             "post": {
                 "description": "Create a new attendance record for a student",
                 "consumes": [
@@ -885,51 +1164,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid request body",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Internal server error",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            },
-            "get": {
-                "description": "Retrieve all attendance records with pagination",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "Attendances"
-                ],
-                "summary": "Get all attendance records",
-                "parameters": [
-                    {
-                        "type": "integer",
-                        "default": 10,
-                        "description": "Number of records to return (max 100)",
-                        "name": "limit",
-                        "in": "query"
-                    },
-                    {
-                        "type": "integer",
-                        "default": 0,
-                        "description": "Number of records to skip",
-                        "name": "offset",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Attendance records retrieved successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -1669,6 +1903,193 @@ const docTemplate = `{
                 }
             }
         },
+        "/student/password": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the currently authenticated student's password",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Student Dashboard"
+                ],
+                "summary": "Update current student password",
+                "parameters": [
+                    {
+                        "description": "Password update request",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Password updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/student/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get the profile of the currently authenticated student with attendance statistics",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Student Dashboard"
+                ],
+                "summary": "Get student profile",
+                "responses": {
+                    "200": {
+                        "description": "Profile retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            },
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Update the profile information of the currently authenticated student",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Student Dashboard"
+                ],
+                "summary": "Update student profile",
+                "parameters": [
+                    {
+                        "description": "Profile update data with first_name, last_name, email, phone",
+                        "name": "profile",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Profile updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Invalid request body",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Student not found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/students": {
             "get": {
                 "description": "Retrieve a paginated list of all students",
@@ -1795,6 +2216,37 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Invalid class ID",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/students/stats": {
+            "get": {
+                "description": "Get statistics about students including total active and inactive counts",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Students"
+                ],
+                "summary": "Get student statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics retrieved successfully",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
@@ -2325,6 +2777,37 @@ const docTemplate = `{
                 }
             }
         },
+        "/teachers/stats": {
+            "get": {
+                "description": "Get various statistics about teachers in the system",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Teachers"
+                ],
+                "summary": "Get teacher statistics",
+                "responses": {
+                    "200": {
+                        "description": "Statistics retrieved successfully",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Internal server error",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/teachers/teacher-id/{teacherId}": {
             "get": {
                 "description": "Retrieve a specific teacher by their teacher ID",
@@ -2741,47 +3224,16 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_michaelwp_student_attendance_internal_models.AbsentRequest": {
+        "github_com_michaelwp_student_attendance_internal_models.AbsentRequestCreate": {
             "type": "object",
             "properties": {
-                "class_id": {
-                    "type": "integer"
-                },
-                "created_at": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "integer"
-                },
                 "reason": {
                     "type": "string"
                 },
                 "request_date": {
                     "type": "string"
-                },
-                "status": {
-                    "$ref": "#/definitions/github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus"
-                },
-                "student_id": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
                 }
             }
-        },
-        "github_com_michaelwp_student_attendance_internal_models.AbsentRequestStatus": {
-            "type": "string",
-            "enum": [
-                "pending",
-                "approved",
-                "rejected"
-            ],
-            "x-enum-varnames": [
-                "AbsentRequestStatusPending",
-                "AbsentRequestStatusApproved",
-                "AbsentRequestStatusRejected"
-            ]
         },
         "github_com_michaelwp_student_attendance_internal_models.Admin": {
             "type": "object",
@@ -2801,6 +3253,9 @@ const docTemplate = `{
                 "last_login": {
                     "type": "string"
                 },
+                "password": {
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
                 }
@@ -2815,8 +3270,17 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "created_by": {
+                    "type": "integer"
+                },
                 "date": {
                     "type": "string"
+                },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "integer"
                 },
                 "description": {
                     "type": "string"
@@ -2830,8 +3294,17 @@ const docTemplate = `{
                 "student_id": {
                     "type": "string"
                 },
+                "time_in": {
+                    "type": "string"
+                },
+                "time_out": {
+                    "type": "string"
+                },
                 "updated_at": {
                     "type": "string"
+                },
+                "updated_by": {
+                    "type": "integer"
                 }
             }
         },
@@ -2840,12 +3313,14 @@ const docTemplate = `{
             "enum": [
                 "present",
                 "absent",
-                "late"
+                "late",
+                "excused"
             ],
             "x-enum-varnames": [
                 "AttendanceStatusPresent",
                 "AttendanceStatusAbsent",
-                "AttendanceStatusLate"
+                "AttendanceStatusLate",
+                "AttendanceStatusExcused"
             ]
         },
         "github_com_michaelwp_student_attendance_internal_models.Class": {
@@ -2880,6 +3355,12 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "integer"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2889,10 +3370,19 @@ const docTemplate = `{
                 "id": {
                     "type": "integer"
                 },
+                "is_active": {
+                    "type": "boolean"
+                },
                 "last_name": {
                     "type": "string"
                 },
+                "password": {
+                    "type": "string"
+                },
                 "phone": {
+                    "type": "string"
+                },
+                "photo_path": {
                     "type": "string"
                 },
                 "student_id": {
@@ -2909,6 +3399,12 @@ const docTemplate = `{
                 "created_at": {
                     "type": "string"
                 },
+                "deleted_at": {
+                    "type": "string"
+                },
+                "deleted_by": {
+                    "type": "integer"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -2917,6 +3413,9 @@ const docTemplate = `{
                 },
                 "id": {
                     "type": "integer"
+                },
+                "is_active": {
+                    "type": "boolean"
                 },
                 "last_name": {
                     "type": "string"
