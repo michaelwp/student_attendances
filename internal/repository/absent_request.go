@@ -67,9 +67,22 @@ func (r *absentRequestRepository) GetByID(ctx context.Context, id uint) (*models
 
 func (r *absentRequestRepository) GetByStudent(ctx context.Context, studentID string, limit, offset int) ([]*models.AbsentRequest, error) {
 	query := `
-		SELECT id, student_id, class_id, request_date, reason, status, created_at, updated_at
+		SELECT id
+		     , student_id
+		     , class_id
+		     , request_date
+		     , reason
+		     
+		     , status
+		     , created_at
+		     , updated_at
+			 , approved_by
+			 , approved_at
+		
+			 , rejected_by
+			 , rejected_at
 		FROM absent_requests 
-		WHERE student_id = $1
+		WHERE student_id = $1 AND deleted_at IS NULL
 		ORDER BY created_at DESC
 		LIMIT $2 OFFSET $3`
 
@@ -88,9 +101,15 @@ func (r *absentRequestRepository) GetByStudent(ctx context.Context, studentID st
 			&request.ClassID,
 			&request.RequestDate,
 			&request.Reason,
+
 			&request.Status,
 			&request.CreatedAt,
 			&request.UpdatedAt,
+			&request.ApprovedBy,
+			&request.ApprovedAt,
+
+			&request.RejectedBy,
+			&request.RejectedAt,
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to scan absent request: %w", err)
@@ -230,6 +249,37 @@ func (r *absentRequestRepository) Delete(ctx context.Context, id uint) error {
 
 	if rowsAffected == 0 {
 		return fmt.Errorf("absent request not found")
+	}
+
+	return nil
+}
+
+func (r *absentRequestRepository) GetTotalAbsentRequests(ctx context.Context) (int, error) {
+	query := `SELECT COUNT(*) FROM absent_requests WHERE deleted_at IS NULL`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get total absent_request: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *absentRequestRepository) UpdateDeleteInfo(ctx context.Context, id uint, studentID uint, deletedBy uint) error {
+	query := `
+		UPDATE absent_requests
+		SET deleted_at = NOW(), deleted_by = $2
+		WHERE id = $1 AND student_id = $3
+		RETURNING deleted_at`
+
+	var deletedAt string
+	err := r.db.QueryRowContext(ctx, query, id, deletedBy, studentID).Scan(&deletedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("absent_request not found")
+		}
+		return fmt.Errorf("failed to update absent_request delete info: %w", err)
 	}
 
 	return nil

@@ -28,6 +28,15 @@ type Attendance struct {
 	DeletedBy   *uint            `json:"deleted_by" db:"deleted_by"`
 }
 
+type AttendanceWithStats struct {
+	Attendance
+	TotalAttendances int `json:"total_attendances" db:"total_attendances"`
+	TotalPresent     int `json:"total_present" db:"total_present"`
+	TotalAbsent      int `json:"total_absent" db:"total_absent"`
+	TotalLate        int `json:"total_late" db:"total_late"`
+	TotalExcused     int `json:"total_excused" db:"total_excused"`
+}
+
 func (Attendance) TableName() string {
 	return "attendances"
 }

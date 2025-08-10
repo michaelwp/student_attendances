@@ -472,3 +472,29 @@ func (r *attendanceRepository) GetCount(ctx context.Context) (int, error) {
 
 	return count, nil
 }
+
+func (r *attendanceRepository) GetAttendanceStats(ctx context.Context, studentID uint) (*models.AttendanceWithStats, error) {
+	query := `
+		SELECT 
+			COUNT(*) as total_attendances,
+			COUNT(CASE WHEN status = 'present' THEN 1 END) as total_present,
+			COUNT(CASE WHEN status = 'absent' THEN 1 END) as total_absent,
+			COUNT(CASE WHEN status = 'late' THEN 1 END) as total_late,
+			COUNT(CASE WHEN status = 'excused' THEN 1 END) as total_excused
+		FROM attendances 
+		WHERE student_id = $1 AND deleted_at IS NULL`
+
+	stats := &models.AttendanceWithStats{}
+	err := r.db.QueryRowContext(ctx, query, studentID).Scan(
+		&stats.TotalAttendances,
+		&stats.TotalPresent,
+		&stats.TotalAbsent,
+		&stats.TotalLate,
+		&stats.TotalExcused,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get attendance stats: %w", err)
+	}
+
+	return stats, nil
+}

@@ -147,23 +147,56 @@ export interface DashboardStats {
   total_admins: number;
   active_admins: number;
   inactive_admins: number;
-  
+
   // Teacher stats
   total_teachers: number;
   active_teachers: number;
   inactive_teachers: number;
-  
+
   // Student stats
   total_students: number;
   active_students: number;
   inactive_students: number;
-  
+
   // Class stats
   total_classes: number;
-  
+
   // Today's attendance
   total_attendance_today?: number;
   present_today?: number;
   absent_today?: number;
   late_today?: number;
+}
+
+// Student profile interface for dashboard
+export interface StudentProfile extends Student {
+  class_name?: string;
+  attendance_stats?: AttendanceStats;
+}
+
+export interface AttendanceStats {
+  total_days?: number;
+  present_days?: number;
+  absent_days?: number;
+  late_days?: number;
+  excused_days?: number;
+  attendance_rate?: number;
+}
+
+// Absent request model
+export interface AbsentRequest extends BaseModel {
+  student_id: string;
+  request_date: string;
+  reason: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_by?: number;
+  approved_at?: string;
+  rejected_by?: number;
+  rejected_at?: string;
+}
+
+// Absent request form data
+export interface AbsentRequestFormData {
+  request_date: string;
+  reason: string;
 }

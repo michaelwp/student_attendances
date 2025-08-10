@@ -27,6 +27,7 @@ A comprehensive full-stack student attendance management system with a REST API 
 - **Responsive Design**: Mobile-first responsive design with Tailwind CSS
 - **Admin Dashboard**: Real-time statistics with active/inactive breakdowns for all entities
 - **Student Homepage**: Public attendance marking page for students with simple ID/password authentication
+- **Student Dashboard**: Comprehensive student portal with profile management, attendance statistics, and absent request functionality
 - **Complete CRUD Management**: Full create, read, update, delete operations for all business entities
 - **Photo Upload**: Drag-and-drop photo upload with preview and validation
 - **Password Management**: Update/reset password functionality for teachers, students, and admins
@@ -243,6 +244,14 @@ The API implements role-based access control with three user types:
 - `GET /api/v1/students/{id}/photo` - Get student profile photo (signed URL)
 - `PUT /api/v1/students/student-id/{studentId}/reset-password` - Reset student password (generates new password)
 - `PUT /api/v1/students/student-id/{studentId}/password` - Update student password (user provides old and new password)
+
+### Student Dashboard (🔒 Student Authentication Required)
+- `GET /api/v1/student/profile` - Get authenticated student's profile with attendance statistics
+- `PUT /api/v1/student/profile` - Update authenticated student's profile (first name, last name, email, phone)
+- `PUT /api/v1/student/password` - Update authenticated student's password (with old password verification)
+- `GET /api/v1/student/absent-requests` - Get authenticated student's absent requests (paginated)
+- `POST /api/v1/student/absent-requests` - Create new absent request for authenticated student
+- `DELETE /api/v1/student/absent-requests/{id}` - Delete student's own absent request (pending requests only)
 
 ### Attendances (🔒 Authentication Required)
 - `POST /api/v1/attendances` - Create attendance record
@@ -759,6 +768,61 @@ curl -X PUT http://localhost:8080/api/v1/students/student-id/STU001/password \
     "old_password": "current_password",
     "new_password": "new_secure_password"
   }'
+```
+
+#### Student Dashboard Examples (🔒 Student Authentication Required)
+
+##### Get Student Profile with Statistics
+```bash
+curl -X GET http://localhost:8080/api/v1/student/profile \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN"
+```
+
+##### Update Student Profile
+```bash
+curl -X PUT http://localhost:8080/api/v1/student/profile \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN" \
+  -d '{
+    "first_name": "Jane",
+    "last_name": "Smith",
+    "email": "jane.smith@student.com",
+    "phone": "+1234567890"
+  }'
+```
+
+##### Update Student Password (Self-Service)
+```bash
+curl -X PUT http://localhost:8080/api/v1/student/password \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+##### Get Student's Absent Requests
+```bash
+curl -X GET "http://localhost:8080/api/v1/student/absent-requests?limit=10&offset=0" \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN"
+```
+
+##### Create Absent Request
+```bash
+curl -X POST http://localhost:8080/api/v1/student/absent-requests \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN" \
+  -d '{
+    "request_date": "2024-01-20",
+    "reason": "Medical appointment"
+  }'
+```
+
+##### Delete Student's Own Absent Request
+```bash
+curl -X DELETE http://localhost:8080/api/v1/student/absent-requests/1 \
+  -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN"
 ```
 
 #### Create an Admin (🔒 Admin Authentication Required)
@@ -1342,3 +1406,58 @@ A dedicated public page for students to mark their daily attendance:
 - Validates student credentials against the database
 - Automatically records attendance with "present" status
 - Returns student name and success confirmation
+
+### Student Dashboard Portal
+A comprehensive authenticated dashboard for students to manage their academic profile and track attendance:
+
+**Features:**
+- **Secure Authentication**: JWT-based login using Student ID and password
+- **Profile Management**: View and update personal information (name, email, phone)
+- **Password Management**: Self-service password updates with current password verification
+- **Attendance Statistics**: Real-time attendance tracking with percentage calculations
+- **Absent Request Management**: Create, view, and manage absence requests with status tracking
+- **Responsive Interface**: Optimized for both desktop and mobile devices
+- **Real-Time Updates**: Live statistics and immediate feedback for all actions
+- **Multilingual Support**: Available in English and Indonesian
+
+**Dashboard Sections:**
+1. **Overview Tab**: 
+   - Student ID and contact information display
+   - Attendance rate with visual percentage indicator
+   - Present and absent days counters
+   - Quick action buttons for common tasks
+
+2. **Profile Tab**:
+   - Personal information editor with validation
+   - Password update form with security requirements
+   - Real-time form validation and error handling
+
+3. **Absent Requests Tab**:
+   - Paginated list of all absence requests with status badges
+   - Create new absence requests with date and reason validation
+   - Delete pending requests (approved/rejected cannot be modified)
+   - Status tracking (Pending, Approved, Rejected) with color-coded indicators
+
+**Technical Implementation:**
+- **React Components**: Modular architecture with reusable components
+- **Form Validation**: Real-time validation using React Hook Form
+- **State Management**: Efficient state updates with callback patterns
+- **Error Handling**: Comprehensive error states with user-friendly messages
+- **Toast Notifications**: Success and error feedback for all operations
+- **Modal Dialogs**: Confirmation dialogs for destructive actions
+- **Pagination**: Efficient data loading for large datasets
+
+**Usage Flow:**
+1. Student logs in using their Student ID and password
+2. System redirects to the student dashboard upon successful authentication
+3. Dashboard displays personalized statistics and navigation tabs
+4. Students can update their profile, change passwords, and manage absent requests
+5. All changes are immediately reflected with toast notifications
+6. System maintains session state until logout or token expiration
+
+**Security Features:**
+- JWT token authentication for all API calls
+- Password updates require current password verification
+- Students can only access their own data
+- Secure logout with token invalidation
+- Client-side validation combined with server-side security

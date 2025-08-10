@@ -41,6 +41,10 @@ type StudentHandler interface {
 	ResetPassword(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
 	GetStats(c *fiber.Ctx) error
+	// Student dashboard methods
+	GetProfile(c *fiber.Ctx) error
+	UpdateProfile(c *fiber.Ctx) error
+	UpdateCurrentPassword(c *fiber.Ctx) error
 }
 
 // AttendanceHandler defines the interface for attendance API operations
@@ -65,6 +69,8 @@ type AbsentRequestHandler interface {
 	GetPending(c *fiber.Ctx) error
 	UpdateStatus(c *fiber.Ctx) error
 	Delete(c *fiber.Ctx) error
+	GetByCurrentStudent(c *fiber.Ctx) error
+	UpdateByCurrentStudent(c *fiber.Ctx) error
 }
 
 // AdminHandler defines the interface for admin API operations

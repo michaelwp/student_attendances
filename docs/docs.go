@@ -2740,6 +2740,14 @@ const docTemplate = `{
             }
         }
     },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header",
+            "description": "JWT Bearer token. Format: 'Bearer {token}'"
+        }
+    },
     "definitions": {
         "github_com_michaelwp_student_attendance_internal_models.AbsentRequest": {
             "type": "object",

@@ -1,0 +1,14 @@
+CREATE TABLE IF NOT EXISTS attendances_setup (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    time_start TIME NOT NULL,
+    time_end TIME NOT NULL,
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    created_by INT NOT NULL REFERENCES admins(id),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    updated_by INT NOT NULL REFERENCES admins(id) DEFAULT NULL,
+    deleted_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,
+    deleted_by INT REFERENCES admins(id) DEFAULT NULL
+);
