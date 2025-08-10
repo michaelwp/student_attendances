@@ -20,17 +20,27 @@ import (
 )
 
 type teacherHandler struct {
-	teacherRepo repository.TeacherRepository
-	s3Config    *config.S3Config
-	s3Client    *s3.Client
+	teacherRepo       repository.TeacherRepository
+	s3Config          *config.S3Config
+	s3Client          *s3.Client
+	classRepo         repository.ClassRepository
+	absentRequestRepo repository.AbsentRequestRepository
 }
 
 // NewTeacherHandler creates a new teacher handler
-func NewTeacherHandler(teacherRepo repository.TeacherRepository, s3Client *s3.Client, s3Config *config.S3Config) TeacherHandler {
+func NewTeacherHandler(
+	teacherRepo repository.TeacherRepository,
+	s3Client *s3.Client,
+	s3Config *config.S3Config,
+	classRepo repository.ClassRepository,
+	absentRequestRepo repository.AbsentRequestRepository,
+) TeacherHandler {
 	return &teacherHandler{
-		teacherRepo: teacherRepo,
-		s3Config:    s3Config,
-		s3Client:    s3Client,
+		teacherRepo:       teacherRepo,
+		s3Config:          s3Config,
+		s3Client:          s3Client,
+		classRepo:         classRepo,
+		absentRequestRepo: absentRequestRepo,
 	}
 }
 
@@ -646,4 +656,348 @@ func (h *teacherHandler) updateCurrentPassword(ctx context.Context, teacherID st
 	}
 
 	return nil
+}
+
+// GetProfile godoc
+// @Summary Get teacher profile
+// @Description Get the profile of the currently authenticated teacher with classes and statistics
+// @Tags Teacher Dashboard
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Success 200 {object} map[string]interface{} "Profile retrieved successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Teacher not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /teacher/profile [get]
+func (h *teacherHandler) GetProfile(c *fiber.Ctx) error {
+	userID := c.Locals("userID")
+	if userID == nil {
+		log.Println("error on get profile: invalid user id")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id",
+			"error":         "Invalid user ID",
+		})
+	}
+
+	userIDStr := userID.(string)
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		log.Println("error on get profile: invalid user id format:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id_format",
+			"error":         "Invalid user ID format",
+		})
+	}
+
+	teacherWithClasses, err := h.teacherRepo.GetByIDWithClasses(c.Context(), uint(userIDUint))
+	if err != nil {
+		log.Println("error on get profile:", err)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate_key": "error.teacher_not_found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	if teacherWithClasses == nil || teacherWithClasses.Teacher == nil {
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate_key": "error.teacher_not_found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.profile_retrieved",
+		"message":       "Profile retrieved successfully",
+		"data":          teacherWithClasses,
+	})
+}
+
+// UpdateCurrentPassword godoc
+// @Summary Update current teacher password
+// @Description Update the currently authenticated teacher's password
+// @Tags Teacher Dashboard
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param request body map[string]string true "Password update request"
+// @Success 200 {object} map[string]interface{} "Password updated successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Teacher not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /teacher/password [put]
+func (h *teacherHandler) UpdateCurrentPassword(c *fiber.Ctx) error {
+	userID := c.Locals("userID")
+	if userID == nil {
+		log.Println("error on update current password: invalid user id")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id",
+			"error":         "Invalid user ID",
+		})
+	}
+
+	var request struct {
+		OldPassword string `json:"old_password"`
+		NewPassword string `json:"new_password"`
+	}
+
+	if err := c.BodyParser(&request); err != nil {
+		log.Println("error on update current password: failed to parse request body:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid.request.body",
+			"error":         "Invalid request body",
+		})
+	}
+
+	if request.NewPassword == "" || request.OldPassword == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.password.required",
+			"error":         "Password is required",
+		})
+	}
+
+	userIDStr := userID.(string)
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		log.Println("error on update current password: invalid user id format:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id_format",
+			"error":         "Invalid user ID format",
+		})
+	}
+
+	teacher, err := h.teacherRepo.GetByID(c.Context(), uint(userIDUint))
+	if err != nil || teacher == nil {
+		log.Println("error on update current password: teacher not found or repo error", err)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate_key": "error.teacher_not_found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	storedPassword, err := h.teacherRepo.GetPasswordByTeacherID(c.Context(), teacher.TeacherID)
+	if err != nil {
+		log.Println("error on update current password: failed to retrieve stored password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.password.retrieval.failed",
+			"error":         "Failed to retrieve stored password",
+		})
+	}
+
+	if err := pkg.ComparePasswords(storedPassword, request.OldPassword); err != nil {
+		log.Println("error on update current password: failed to compare passwords:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid.old.password",
+			"error":         "Invalid old password",
+		})
+	}
+
+	if err := h.updateCurrentPassword(c.Context(), teacher.TeacherID, request.NewPassword); err != nil {
+		log.Println("error on update current password: failed to update current password:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.password.update.failed",
+			"error":         "Failed to update password",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.password.updated",
+		"message":       "Password updated successfully",
+	})
+}
+
+// GetAbsentRequests godoc
+// @Summary Get absent requests for teacher
+// @Description Get paginated list of absent requests from students in the teacher's classes
+// @Tags Teacher Dashboard
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param limit query int false "Number of requests to return (max 100)" default(10)
+// @Param offset query int false "Number of requests to skip" default(0)
+// @Success 200 {object} map[string]interface{} "Absent requests retrieved successfully"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Teacher not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /absent-requests/current-teacher [get]
+func (h *teacherHandler) GetAbsentRequests(c *fiber.Ctx) error {
+	userID := c.Locals("userID")
+	if userID == nil {
+		log.Println("error on get absent requests: invalid user id")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id",
+			"error":         "Invalid user ID",
+		})
+	}
+
+	userIDStr := userID.(string)
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		log.Println("error on get absent requests: invalid user id format:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id_format",
+			"error":         "Invalid user ID format",
+		})
+	}
+
+	// Get teacher to get teacherID
+	teacher, err := h.teacherRepo.GetByID(c.Context(), uint(userIDUint))
+	if err != nil || teacher == nil {
+		log.Println("error on get absent requests: teacher not found:", err)
+		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+			"translate_key": "error.teacher_not_found",
+			"error":         "Teacher not found",
+		})
+	}
+
+	limit, _ := strconv.Atoi(c.Query("limit", "10"))
+	offset, _ := strconv.Atoi(c.Query("offset", "0"))
+
+	if limit > 100 {
+		limit = 100
+	}
+
+	requests, err := h.absentRequestRepo.GetByTeacher(c.Context(), teacher.TeacherID, limit, offset)
+	if err != nil {
+		log.Println("error on get absent requests:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_absent_requests",
+			"error":         "Failed to get absent requests",
+		})
+	}
+
+	total, err := h.absentRequestRepo.GetCountByTeacher(c.Context(), teacher.TeacherID)
+	if err != nil {
+		log.Println("error on get absent requests count:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_absent_requests_count",
+			"error":         "Failed to get absent requests count",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.absent_requests_retrieved",
+		"message":       "Absent requests retrieved successfully",
+		"data":          requests,
+		"total":         total,
+		"limit":         limit,
+		"offset":        offset,
+	})
+}
+
+// ApproveAbsentRequest godoc
+// @Summary Approve absent request
+// @Description Approve a student's absent request
+// @Tags Teacher Dashboard
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Absent request ID"
+// @Success 200 {object} map[string]interface{} "Request approved successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Request not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /absent-requests/absent-request-id/{id}/approve [put]
+func (h *teacherHandler) ApproveAbsentRequest(c *fiber.Ctx) error {
+	userID := c.Locals("userID")
+	if userID == nil {
+		log.Println("error on approve absent request: invalid user id")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id",
+			"error":         "Invalid user ID",
+		})
+	}
+
+	userIDStr := userID.(string)
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		log.Println("error on approve absent request: invalid user id format:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id_format",
+			"error":         "Invalid user ID format",
+		})
+	}
+
+	idParam := c.Params("id")
+	requestID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		log.Println("error on approve absent request: invalid request id:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_request_id",
+			"error":         "Invalid request ID",
+		})
+	}
+
+	if err := h.absentRequestRepo.Approve(c.Context(), uint(requestID), uint(userIDUint)); err != nil {
+		log.Println("error on approve absent request:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_approve_request",
+			"error":         "Failed to approve request",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.request_approved",
+		"message":       "Request approved successfully",
+	})
+}
+
+// RejectAbsentRequest godoc
+// @Summary Reject absent request
+// @Description Reject a student's absent request
+// @Tags Teacher Dashboard
+// @Accept json
+// @Produce json
+// @Security BearerAuth
+// @Param id path int true "Absent request ID"
+// @Success 200 {object} map[string]interface{} "Request rejected successfully"
+// @Failure 400 {object} map[string]interface{} "Invalid request ID"
+// @Failure 401 {object} map[string]interface{} "Unauthorized"
+// @Failure 404 {object} map[string]interface{} "Request not found"
+// @Failure 500 {object} map[string]interface{} "Internal server error"
+// @Router /absent-requests/absent-request-id/{id}/reject [put]
+func (h *teacherHandler) RejectAbsentRequest(c *fiber.Ctx) error {
+	userID := c.Locals("userID")
+	if userID == nil {
+		log.Println("error on reject absent request: invalid user id")
+		return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id",
+			"error":         "Invalid user ID",
+		})
+	}
+
+	userIDStr := userID.(string)
+	userIDUint, err := strconv.ParseUint(userIDStr, 10, 32)
+	if err != nil {
+		log.Println("error on reject absent request: invalid user id format:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_user_id_format",
+			"error":         "Invalid user ID format",
+		})
+	}
+
+	idParam := c.Params("id")
+	requestID, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		log.Println("error on reject absent request: invalid request id:", err)
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"translate_key": "error.invalid_request_id",
+			"error":         "Invalid request ID",
+		})
+	}
+
+	if err := h.absentRequestRepo.Reject(c.Context(), uint(requestID), uint(userIDUint)); err != nil {
+		log.Println("error on reject absent request:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_reject_request",
+			"error":         "Failed to reject request",
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"translate_key": "success.request_rejected",
+		"message":       "Request rejected successfully",
+	})
 }
