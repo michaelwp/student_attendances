@@ -253,6 +253,13 @@ The API implements role-based access control with three user types:
 - `POST /api/v1/student/absent-requests` - Create new absent request for authenticated student
 - `DELETE /api/v1/student/absent-requests/{id}` - Delete student's own absent request (pending requests only)
 
+### Teacher Dashboard (🔒 Teacher Authentication Required)
+- `GET /api/v1/teacher/profile` - Get authenticated teacher's profile with assigned classes and statistics
+- `PUT /api/v1/teacher/password` - Update authenticated teacher's password (with old password verification)
+- `GET /api/v1/absent-requests/current-teacher` - Get absent requests from students in teacher's classes (paginated)
+- `PUT /api/v1/absent-requests/absent-request-id/{id}/approve` - Approve a student's absent request
+- `PUT /api/v1/absent-requests/absent-request-id/{id}/reject` - Reject a student's absent request
+
 ### Attendances (🔒 Authentication Required)
 - `POST /api/v1/attendances` - Create attendance record
 - `GET /api/v1/attendances/all` - Get all attendance records (paginated)
@@ -823,6 +830,43 @@ curl -X POST http://localhost:8080/api/v1/student/absent-requests \
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/student/absent-requests/1 \
   -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN"
+```
+
+#### Teacher Dashboard Examples (🔒 Teacher Authentication Required)
+
+##### Get Teacher Profile with Classes and Statistics
+```bash
+curl -X GET http://localhost:8080/api/v1/teacher/profile \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Update Teacher Password (Self-Service)
+```bash
+curl -X PUT http://localhost:8080/api/v1/teacher/password \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+##### Get Absent Requests from Teacher's Classes
+```bash
+curl -X GET "http://localhost:8080/api/v1/absent-requests/current-teacher?limit=10&offset=0" \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Approve Student Absent Request
+```bash
+curl -X PUT http://localhost:8080/api/v1/absent-requests/absent-request-id/1/approve \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Reject Student Absent Request
+```bash
+curl -X PUT http://localhost:8080/api/v1/absent-requests/absent-request-id/1/reject \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
 ```
 
 #### Create an Admin (🔒 Admin Authentication Required)
@@ -1441,6 +1485,37 @@ A comprehensive authenticated dashboard for students to manage their academic pr
    - Delete pending requests (approved/rejected cannot be modified)
    - Status tracking (Pending, Approved, Rejected) with color-coded indicators
 
+### Teacher Dashboard Portal
+A dedicated authenticated dashboard for teachers to manage their classes and review student requests:
+**Features:**
+- **Teacher Authentication**: JWT-based login using Teacher ID and password
+- **Profile Management**: View personal information, assigned classes, and teaching statistics
+- **Password Management**: Self-service password updates with security validation
+- **Class Management**: View assigned classes and total student counts
+- **Absent Request Processing**: Review, approve, or reject student absence requests
+- **Request Management**: Real-time list of pending, approved, and rejected requests
+- **Batch Actions**: Process multiple requests efficiently
+- **Student Information**: View detailed request information with student identification
+- **Status Tracking**: Complete audit trail of request decisions with timestamps
+- **Responsive Design**: Optimized interface for various screen sizes
+- **Multilingual Support**: Available in English and Indonesian
+**Dashboard Sections:**
+1. **Profile Tab**: 
+   - Teacher ID and contact information display
+   - Assigned classes with student count statistics
+   - Pending requests counter and quick stats
+   - Professional information and status indicators
+2. **Password Tab**:
+   - Secure password update form with current password verification
+   - Password strength requirements and validation
+   - Real-time form validation and security feedback
+3. **Absent Requests Tab**:
+   - List all student absence requests from assigned classes
+   - Filter by status (pending, approved, rejected)
+   - Approve or reject requests with single-click actions
+   - View detailed request information with student context
+   - Real-time updates when actions are performed
+
 **Technical Implementation:**
 - **React Components**: Modular architecture with reusable components
 - **Form Validation**: Real-time validation using React Hook Form
@@ -1464,3 +1539,34 @@ A comprehensive authenticated dashboard for students to manage their academic pr
 - Students can only access their own data
 - Secure logout with token invalidation
 - Client-side validation combined with server-side security
+
+## UI/UX Improvements
+
+### Enhanced Login Page Experience
+The login page has been enhanced with improved navigation and user experience:
+
+**Features:**
+- **Smart Navigation**: Prominent "Back to Attendance" button in the top-left corner
+- **Consistent Design Language**: Navigation button uses the same styling as other interactive elements
+- **Multilingual Support**: Navigation button text supports both English ("Back to Attendance") and Indonesian ("Kembali ke Absensi")
+- **Accessibility**: Proper ARIA labels and keyboard navigation support
+- **Professional Styling**: Blue-themed button matching the application's design system
+- **Responsive Design**: Navigation adapts properly to mobile and desktop layouts
+
+**Navigation Flow:**
+1. Users accessing the login page can easily return to the attendance marking page
+2. Button uses hash navigation (`#/`) to return to the homepage
+3. Hover effects and focus states provide clear visual feedback
+4. Consistent with other navigation elements throughout the application
+
+**Design Consistency:**
+- Matches the styling of login links found on the student attendance homepage
+- Uses the application's primary blue color scheme
+- Follows the same spacing and typography conventions
+- Integrates seamlessly with the existing header layout (language and theme toggles)
+
+### User Experience Enhancements
+- **Intuitive Navigation**: Users can easily navigate between public attendance marking and authenticated dashboard access
+- **Clear Visual Hierarchy**: Important navigation elements are prominently displayed
+- **Consistent Interactions**: All navigation elements behave predictably across the application
+- **Mobile-Friendly**: All navigation improvements work seamlessly on mobile devices

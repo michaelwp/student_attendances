@@ -174,6 +174,13 @@ export interface StudentProfile extends Student {
   attendance_stats?: AttendanceStats;
 }
 
+// Teacher profile interface for dashboard
+export interface TeacherProfile extends Teacher {
+  classes?: Class[];
+  total_students?: number;
+  pending_requests?: number;
+}
+
 export interface AttendanceStats {
   total_days?: number;
   present_days?: number;

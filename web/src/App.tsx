@@ -11,6 +11,7 @@ import AttendancePage from './pages/AttendancePage';
 import AdminsPage from './pages/AdminsPage';
 import StudentHomepage from './pages/StudentHomepage';
 import StudentPage from './pages/StudentPage';
+import TeacherPage from './pages/TeacherPage';
 import Layout from './components/Layout';
 import { ToastContainer } from './components/Toast';
 import './i18n';
@@ -69,6 +70,16 @@ const App: React.FC = () => {
     return (
       <>
         <StudentPage />
+        <ToastContainer />
+      </>
+    );
+  }
+
+  // Show teacher-specific page without layout for teacher users
+  if (user?.type === 'teacher') {
+    return (
+      <>
+        <TeacherPage />
         <ToastContainer />
       </>
     );

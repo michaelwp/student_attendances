@@ -345,6 +345,94 @@ paths:
       summary: Update absent request by current student
       tags:
       - Absent Requests
+  /absent-requests/absent-request-id/{id}/approve:
+    put:
+      consumes:
+      - application/json
+      description: Approve a student's absent request
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Request approved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Request not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Approve absent request
+      tags:
+      - Teacher Dashboard
+  /absent-requests/absent-request-id/{id}/reject:
+    put:
+      consumes:
+      - application/json
+      description: Reject a student's absent request
+      parameters:
+      - description: Absent request ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Request rejected successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request ID
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Request not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Reject absent request
+      tags:
+      - Teacher Dashboard
   /absent-requests/class-id/{classId}:
     get:
       consumes:
@@ -424,6 +512,51 @@ paths:
       summary: Get absent requests for current student
       tags:
       - Absent Requests
+  /absent-requests/current-teacher:
+    get:
+      consumes:
+      - application/json
+      description: Get paginated list of absent requests from students in the teacher's
+        classes
+      parameters:
+      - default: 10
+        description: Number of requests to return (max 100)
+        in: query
+        name: limit
+        type: integer
+      - default: 0
+        description: Number of requests to skip
+        in: query
+        name: offset
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Absent requests retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get absent requests for teacher
+      tags:
+      - Teacher Dashboard
   /absent-requests/pending:
     get:
       consumes:
@@ -1980,6 +2113,87 @@ paths:
       summary: Update student password
       tags:
       - Students
+  /teacher/password:
+    put:
+      consumes:
+      - application/json
+      description: Update the currently authenticated teacher's password
+      parameters:
+      - description: Password update request
+        in: body
+        name: request
+        required: true
+        schema:
+          additionalProperties:
+            type: string
+          type: object
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Password updated successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Invalid request
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Update current teacher password
+      tags:
+      - Teacher Dashboard
+  /teacher/profile:
+    get:
+      consumes:
+      - application/json
+      description: Get the profile of the currently authenticated teacher with classes
+        and statistics
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Profile retrieved successfully
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Teacher not found
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Internal server error
+          schema:
+            additionalProperties: true
+            type: object
+      security:
+      - BearerAuth: []
+      summary: Get teacher profile
+      tags:
+      - Teacher Dashboard
   /teachers:
     get:
       consumes:

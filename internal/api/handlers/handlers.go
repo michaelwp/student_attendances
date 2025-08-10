@@ -17,7 +17,7 @@ type HandlerDependencies struct {
 // NewHandlers creates a new instance of all handlers
 func NewHandlers(dep *HandlerDependencies) *Handlers {
 	return &Handlers{
-		Teacher:       NewTeacherHandler(dep.Repositories.Teacher, dep.S3Client, dep.S3Config),
+		Teacher:       NewTeacherHandler(dep.Repositories.Teacher, dep.S3Client, dep.S3Config, dep.Repositories.Class, dep.Repositories.AbsentRequest),
 		Class:         NewClassHandler(dep.Repositories.Class),
 		Student:       NewStudentHandler(dep.Repositories.Student, dep.S3Client, dep.S3Config, dep.Repositories.Attendance),
 		Attendance:    NewAttendanceHandler(dep.Repositories.Attendance, dep.Repositories.Student),

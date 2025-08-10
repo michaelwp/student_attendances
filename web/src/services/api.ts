@@ -16,6 +16,7 @@ import type {
   PasswordResetResponse,
   DashboardStats,
   StudentProfile,
+  TeacherProfile,
   AbsentRequest,
   AbsentRequestFormData,
 } from '../types/models';
@@ -415,6 +416,34 @@ export const studentDashboardApi = {
     apiService.request<ApiResponse<null>>('/student/password', {
       method: 'PUT',
       body: JSON.stringify(data),
+    }),
+};
+
+// Teacher Dashboard API (authenticated teacher endpoints)
+export const teacherDashboardApi = {
+  getProfile: () =>
+    apiService.request<ApiResponse<TeacherProfile>>('/teacher/profile'),
+  updatePassword: (data: PasswordUpdateData) =>
+    apiService.request<ApiResponse<null>>('/teacher/password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  getAbsentRequests: (params?: { limit?: number; offset?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
+    const query = searchParams.toString();
+    return apiService.request<PaginatedResponse<AbsentRequest>>(
+      `/absent-requests/current-teacher${query ? `?${query}` : ''}`
+    );
+  },
+  approveAbsentRequest: (id: number) =>
+    apiService.request<ApiResponse<AbsentRequest>>(`/absent-requests/absent-request-id/${id}/approve`, {
+      method: 'PUT',
+    }),
+  rejectAbsentRequest: (id: number) =>
+    apiService.request<ApiResponse<AbsentRequest>>(`/absent-requests/absent-request-id/${id}/reject`, {
+      method: 'PUT',
     }),
 };
 
