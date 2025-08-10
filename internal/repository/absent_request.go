@@ -284,3 +284,103 @@ func (r *absentRequestRepository) UpdateDeleteInfo(ctx context.Context, id uint,
 
 	return nil
 }
+
+func (r *absentRequestRepository) GetByTeacher(ctx context.Context, teacherID string, limit, offset int) ([]*models.AbsentRequest, error) {
+	query := `
+		SELECT ar.id, ar.student_id, ar.class_id, ar.request_date, ar.reason, ar.status, 
+		       ar.created_at, ar.updated_at, ar.approved_by, ar.approved_at, ar.rejected_by, ar.rejected_at
+		FROM absent_requests ar
+		JOIN classes c ON ar.class_id = c.id
+		WHERE c.homeroom_teacher = $1 AND ar.deleted_at IS NULL
+		ORDER BY ar.created_at DESC
+		LIMIT $2 OFFSET $3`
+
+	rows, err := r.db.QueryContext(ctx, query, teacherID, limit, offset)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get absent requests by teacher: %w", err)
+	}
+	defer rows.Close()
+
+	var requests []*models.AbsentRequest
+	for rows.Next() {
+		request := &models.AbsentRequest{}
+		err := rows.Scan(
+			&request.ID,
+			&request.StudentID,
+			&request.ClassID,
+			&request.RequestDate,
+			&request.Reason,
+			&request.Status,
+			&request.CreatedAt,
+			&request.UpdatedAt,
+			&request.ApprovedBy,
+			&request.ApprovedAt,
+			&request.RejectedBy,
+			&request.RejectedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan absent request: %w", err)
+		}
+		requests = append(requests, request)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate absent requests: %w", err)
+	}
+
+	return requests, nil
+}
+
+func (r *absentRequestRepository) GetCountByTeacher(ctx context.Context, teacherID string) (int, error) {
+	query := `
+		SELECT COUNT(*)
+		FROM absent_requests ar
+		JOIN classes c ON ar.class_id = c.id
+		WHERE c.homeroom_teacher = $1 AND ar.deleted_at IS NULL`
+
+	var count int
+	err := r.db.QueryRowContext(ctx, query, teacherID).Scan(&count)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get absent requests count by teacher: %w", err)
+	}
+
+	return count, nil
+}
+
+func (r *absentRequestRepository) Approve(ctx context.Context, id uint, teacherID uint) error {
+	query := `
+		UPDATE absent_requests
+		SET status = 'approved', approved_by = $2, approved_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND status = 'pending' AND deleted_at IS NULL
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, id, teacherID).Scan(&updatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("absent request not found or not pending")
+		}
+		return fmt.Errorf("failed to approve absent request: %w", err)
+	}
+
+	return nil
+}
+
+func (r *absentRequestRepository) Reject(ctx context.Context, id uint, teacherID uint) error {
+	query := `
+		UPDATE absent_requests
+		SET status = 'rejected', rejected_by = $2, rejected_at = NOW(), updated_at = NOW()
+		WHERE id = $1 AND status = 'pending' AND deleted_at IS NULL
+		RETURNING updated_at`
+
+	var updatedAt string
+	err := r.db.QueryRowContext(ctx, query, id, teacherID).Scan(&updatedAt)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return fmt.Errorf("absent request not found or not pending")
+		}
+		return fmt.Errorf("failed to reject absent request: %w", err)
+	}
+
+	return nil
+}

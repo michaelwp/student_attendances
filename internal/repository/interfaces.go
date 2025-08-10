@@ -24,6 +24,7 @@ type TeacherRepository interface {
 	IsTeacherExist(ctx context.Context, teacherID string) (bool, error)
 	GetStats(ctx context.Context) (*models.TeacherStats, error)
 	UpdateDeleteInfo(ctx context.Context, id uint, deletedBy uint) error
+	GetByIDWithClasses(ctx context.Context, id uint) (*models.TeacherWithClasses, error)
 }
 
 // ClassRepository defines the interface for class operations
@@ -87,6 +88,10 @@ type AbsentRequestRepository interface {
 	Delete(ctx context.Context, id uint) error
 	GetTotalAbsentRequests(ctx context.Context) (int, error)
 	UpdateDeleteInfo(ctx context.Context, id uint, studentID uint, deletedBy uint) error
+	GetByTeacher(ctx context.Context, teacherID string, limit, offset int) ([]*models.AbsentRequest, error)
+	Approve(ctx context.Context, id uint, teacherID uint) error
+	Reject(ctx context.Context, id uint, teacherID uint) error
+	GetCountByTeacher(ctx context.Context, teacherID string) (int, error)
 }
 
 // AdminRepository defines the interface for admin operations

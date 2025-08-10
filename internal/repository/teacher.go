@@ -356,3 +356,78 @@ func (r *teacherRepository) UpdateDeleteInfo(ctx context.Context, id uint, delet
 
 	return nil
 }
+
+func (r *teacherRepository) GetByIDWithClasses(ctx context.Context, id uint) (*models.TeacherWithClasses, error) {
+	// First get the teacher
+	teacher, err := r.GetByID(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	// Get teacher's classes
+	classesQuery := `
+		SELECT id, name, homeroom_teacher, description, created_at, updated_at
+		FROM classes 
+		WHERE homeroom_teacher = $1 AND deleted_at IS NULL
+		ORDER BY name`
+
+	rows, err := r.db.QueryContext(ctx, classesQuery, teacher.TeacherID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get teacher's classes: %w", err)
+	}
+	defer rows.Close()
+
+	var classes []*models.Class
+	for rows.Next() {
+		class := &models.Class{}
+		err := rows.Scan(
+			&class.ID,
+			&class.Name,
+			&class.HomeroomTeacher,
+			&class.Description,
+			&class.CreatedAt,
+			&class.UpdatedAt,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan class: %w", err)
+		}
+		classes = append(classes, class)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, fmt.Errorf("failed to iterate classes: %w", err)
+	}
+
+	// Get total students count
+	studentCountQuery := `
+		SELECT COUNT(s.id)
+		FROM students s
+		JOIN classes c ON s.classes_id = c.id
+		WHERE c.homeroom_teacher = $1 AND s.deleted_at IS NULL AND c.deleted_at IS NULL`
+
+	var totalStudents int
+	err = r.db.QueryRowContext(ctx, studentCountQuery, teacher.TeacherID).Scan(&totalStudents)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get total students count: %w", err)
+	}
+
+	// Get pending requests count
+	pendingRequestsQuery := `
+		SELECT COUNT(ar.id)
+		FROM absent_requests ar
+		JOIN classes c ON ar.class_id = c.id
+		WHERE c.homeroom_teacher = $1 AND ar.status = 'pending' AND ar.deleted_at IS NULL AND c.deleted_at IS NULL`
+
+	var pendingRequests int
+	err = r.db.QueryRowContext(ctx, pendingRequestsQuery, teacher.TeacherID).Scan(&pendingRequests)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pending requests count: %w", err)
+	}
+
+	return &models.TeacherWithClasses{
+		Teacher:         teacher,
+		Classes:         classes,
+		TotalStudents:   totalStudents,
+		PendingRequests: pendingRequests,
+	}, nil
+}

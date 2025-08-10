@@ -15,6 +15,12 @@ type TeacherHandler interface {
 	ResetPassword(c *fiber.Ctx) error
 	UpdatePassword(c *fiber.Ctx) error
 	GetStats(c *fiber.Ctx) error
+	// Teacher dashboard methods
+	GetProfile(c *fiber.Ctx) error
+	UpdateCurrentPassword(c *fiber.Ctx) error
+	GetAbsentRequests(c *fiber.Ctx) error
+	ApproveAbsentRequest(c *fiber.Ctx) error
+	RejectAbsentRequest(c *fiber.Ctx) error
 }
 
 // ClassHandler defines the interface for class API operations

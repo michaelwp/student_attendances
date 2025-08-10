@@ -253,6 +253,13 @@ The API implements role-based access control with three user types:
 - `POST /api/v1/student/absent-requests` - Create new absent request for authenticated student
 - `DELETE /api/v1/student/absent-requests/{id}` - Delete student's own absent request (pending requests only)
 
+### Teacher Dashboard (🔒 Teacher Authentication Required)
+- `GET /api/v1/teacher/profile` - Get authenticated teacher's profile with assigned classes and statistics
+- `PUT /api/v1/teacher/password` - Update authenticated teacher's password (with old password verification)
+- `GET /api/v1/absent-requests/current-teacher` - Get absent requests from students in teacher's classes (paginated)
+- `PUT /api/v1/absent-requests/absent-request-id/{id}/approve` - Approve a student's absent request
+- `PUT /api/v1/absent-requests/absent-request-id/{id}/reject` - Reject a student's absent request
+
 ### Attendances (🔒 Authentication Required)
 - `POST /api/v1/attendances` - Create attendance record
 - `GET /api/v1/attendances/all` - Get all attendance records (paginated)
@@ -823,6 +830,43 @@ curl -X POST http://localhost:8080/api/v1/student/absent-requests \
 ```bash
 curl -X DELETE http://localhost:8080/api/v1/student/absent-requests/1 \
   -H "Authorization: Bearer YOUR_STUDENT_JWT_TOKEN"
+```
+
+#### Teacher Dashboard Examples (🔒 Teacher Authentication Required)
+
+##### Get Teacher Profile with Classes and Statistics
+```bash
+curl -X GET http://localhost:8080/api/v1/teacher/profile \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Update Teacher Password (Self-Service)
+```bash
+curl -X PUT http://localhost:8080/api/v1/teacher/password \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN" \
+  -d '{
+    "old_password": "current_password",
+    "new_password": "new_secure_password"
+  }'
+```
+
+##### Get Absent Requests from Teacher's Classes
+```bash
+curl -X GET "http://localhost:8080/api/v1/absent-requests/current-teacher?limit=10&offset=0" \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Approve Student Absent Request
+```bash
+curl -X PUT http://localhost:8080/api/v1/absent-requests/absent-request-id/1/approve \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
+```
+
+##### Reject Student Absent Request
+```bash
+curl -X PUT http://localhost:8080/api/v1/absent-requests/absent-request-id/1/reject \
+  -H "Authorization: Bearer YOUR_TEACHER_JWT_TOKEN"
 ```
 
 #### Create an Admin (🔒 Admin Authentication Required)
@@ -1440,6 +1484,37 @@ A comprehensive authenticated dashboard for students to manage their academic pr
    - Real-time list updates when new requests are created (auto-refresh functionality)
    - Delete pending requests (approved/rejected cannot be modified)
    - Status tracking (Pending, Approved, Rejected) with color-coded indicators
+
+### Teacher Dashboard Portal
+A dedicated authenticated dashboard for teachers to manage their classes and review student requests:
+**Features:**
+- **Teacher Authentication**: JWT-based login using Teacher ID and password
+- **Profile Management**: View personal information, assigned classes, and teaching statistics
+- **Password Management**: Self-service password updates with security validation
+- **Class Management**: View assigned classes and total student counts
+- **Absent Request Processing**: Review, approve, or reject student absence requests
+- **Request Management**: Real-time list of pending, approved, and rejected requests
+- **Batch Actions**: Process multiple requests efficiently
+- **Student Information**: View detailed request information with student identification
+- **Status Tracking**: Complete audit trail of request decisions with timestamps
+- **Responsive Design**: Optimized interface for various screen sizes
+- **Multilingual Support**: Available in English and Indonesian
+**Dashboard Sections:**
+1. **Profile Tab**: 
+   - Teacher ID and contact information display
+   - Assigned classes with student count statistics
+   - Pending requests counter and quick stats
+   - Professional information and status indicators
+2. **Password Tab**:
+   - Secure password update form with current password verification
+   - Password strength requirements and validation
+   - Real-time form validation and security feedback
+3. **Absent Requests Tab**:
+   - List all student absence requests from assigned classes
+   - Filter by status (pending, approved, rejected)
+   - Approve or reject requests with single-click actions
+   - View detailed request information with student context
+   - Real-time updates when actions are performed
 
 **Technical Implementation:**
 - **React Components**: Modular architecture with reusable components

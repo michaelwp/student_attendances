@@ -23,6 +23,13 @@ type TeacherStats struct {
 	InactiveTeachers int `json:"inactive_teachers" db:"inactive_teachers"`
 }
 
+type TeacherWithClasses struct {
+	*Teacher
+	Classes         []*Class `json:"classes,omitempty"`
+	TotalStudents   int      `json:"total_students"`
+	PendingRequests int      `json:"pending_requests"`
+}
+
 func (Teacher) TableName() string {
 	return "teachers"
 }

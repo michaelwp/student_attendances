@@ -120,7 +120,7 @@ func SetupRoutes(
 	absentRequests.Get("/student-id/:studentId", h.AbsentRequest.GetByStudent)
 	absentRequests.Get("/class-id/:classId", h.AbsentRequest.GetByClass)
 	absentRequests.Get("/absent-request-id/pending", h.AbsentRequest.GetPending)
- absentRequests.Patch("/absent-request-id/:id/status", h.AbsentRequest.UpdateStatus)
+	absentRequests.Patch("/absent-request-id/:id/status", h.AbsentRequest.UpdateStatus)
 	absentRequests.Put("/absent-request-id/:id", h.AbsentRequest.UpdateByCurrentStudent)
 	absentRequests.Delete("/absent-request-id/:id", h.AbsentRequest.Delete)
 	absentRequests.Get("/current-student", h.AbsentRequest.GetByCurrentStudent)
@@ -150,8 +150,18 @@ func SetupRoutes(
 	studentDashboard := api.Group("/student", middleware.JWTMiddleware(redisClient), middleware.RequireUserType(models.UserTypeStudent.String()))
 	studentDashboard.Get("/profile", h.Student.GetProfile)
 	studentDashboard.Put("/profile", h.Student.UpdateProfile)
- studentDashboard.Put("/password", h.Student.UpdateCurrentPassword)
+	studentDashboard.Put("/password", h.Student.UpdateCurrentPassword)
+
+	// Teacher dashboard routes (teacher authentication required)
+	teacherDashboard := api.Group("/teacher", middleware.JWTMiddleware(redisClient), middleware.RequireUserType(models.UserTypeTeacher.String()))
+	teacherDashboard.Get("/profile", h.Teacher.GetProfile)
+	teacherDashboard.Put("/password", h.Teacher.UpdateCurrentPassword)
 	
+	// Teacher absent request management
+	absentRequests.Get("/current-teacher", h.Teacher.GetAbsentRequests)
+	absentRequests.Put("/absent-request-id/:id/approve", h.Teacher.ApproveAbsentRequest)
+	absentRequests.Put("/absent-request-id/:id/reject", h.Teacher.RejectAbsentRequest)
+
 	// Public student attendance marking (no authentication required)
 	api.Post("/attendance/mark", h.Attendance.MarkAttendance)
 }
