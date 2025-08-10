@@ -469,6 +469,13 @@ func (h *absentRequestHandler) GetByCurrentStudent(c *fiber.Ctx) error {
 	}
 
 	totalAbsentRequests, err := h.absentRequestRepo.GetTotalAbsentRequests(c.Context())
+	if err != nil {
+		log.Println("error on get total absent requests:", err)
+		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+			"translate_key": "error.failed_to_get_absent_requests",
+			"error":         "Failed to get absent requests",
+		})
+	}
 
 	return c.JSON(fiber.Map{
 		"translate_key": "success.absent_requests_retrieved",
