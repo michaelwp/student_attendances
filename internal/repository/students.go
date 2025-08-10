@@ -395,3 +395,51 @@ func (r *studentRepository) UpdateDeleteInfo(ctx context.Context, id uint, delet
 
 	return nil
 }
+
+func (r *studentRepository) GetByIDWithClassName(ctx context.Context, id uint) (*models.StudentsWithClassName, error) {
+	query := `
+		SELECT s.id
+		     , s.student_id
+		     , s.classes_id
+		     , s.first_name
+		     , s.last_name
+		     
+		     , s.email
+		     , s.phone
+		     , s.password
+		     , s.created_at
+		     , s.updated_at
+		     
+		     , s.is_active
+			 , c.name AS class_name 
+		FROM students s 
+		    LEFT JOIN classes c ON s.classes_id = c.id AND c.deleted_at IS NULL
+		WHERE s.id = $1 AND s.deleted_at IS NULL`
+
+	student := &models.StudentsWithClassName{}
+	err := r.db.QueryRowContext(ctx, query, id).Scan(
+		&student.ID,
+		&student.StudentID,
+		&student.ClassesID,
+		&student.FirstName,
+		&student.LastName,
+
+		&student.Email,
+		&student.Phone,
+		&student.Password,
+		&student.CreatedAt,
+		&student.UpdatedAt,
+
+		&student.IsActive,
+		&student.ClassName,
+	)
+
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("student not found")
+		}
+		return nil, fmt.Errorf("failed to get student: %w", err)
+	}
+
+	return student, nil
+}

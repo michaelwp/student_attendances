@@ -104,6 +104,16 @@ export const StudentHomepage: React.FC = () => {
               </button>
               
               <button
+                onClick={() => window.location.hash = '#/login'}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <svg className="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                {t('studentHomepage.login_to_dashboard')}
+              </button>
+              
+              <button
                 onClick={() => window.location.reload()}
                 className="w-full flex justify-center py-2 px-4 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
               >
@@ -218,6 +228,23 @@ export const StudentHomepage: React.FC = () => {
                 <li>{t('studentHomepage.instruction_3')}</li>
                 <li>{t('studentHomepage.instruction_4')}</li>
               </ul>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+              <div className="text-center">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-3">
+                  {t('studentHomepage.dashboard_access')}
+                </p>
+                <button
+                  onClick={() => window.location.hash = '#/login'}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900/50 dark:hover:bg-blue-900/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="-ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                  {t('studentHomepage.login_to_dashboard')}
+                </button>
+              </div>
             </div>
           </div>
         </div>

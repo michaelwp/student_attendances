@@ -16,12 +16,18 @@ type Student struct {
 	IsActive  bool       `json:"is_active" db:"is_active"`
 	DeletedAt *time.Time `json:"deleted_at" db:"deleted_at"`
 	DeletedBy *uint      `json:"deleted_by" db:"deleted_by"`
+	PhotoPath *string    `json:"photo_path" db:"photo_path"`
 }
 
 type StudentStats struct {
 	TotalStudents    int `json:"total_students" db:"total_students"`
 	ActiveStudents   int `json:"active_students" db:"active_students"`
 	InactiveStudents int `json:"inactive_students" db:"inactive_students"`
+}
+
+type StudentsWithClassName struct {
+	Student
+	ClassName string `json:"class_name" db:"class_name"`
 }
 
 func (Student) TableName() string {

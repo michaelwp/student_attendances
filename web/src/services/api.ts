@@ -15,6 +15,9 @@ import type {
   PasswordUpdateData,
   PasswordResetResponse,
   DashboardStats,
+  StudentProfile,
+  AbsentRequest,
+  AbsentRequestFormData,
 } from '../types/models';
 
 const API_BASE_URL = 'http://localhost:8080/api/v1';
@@ -119,18 +122,8 @@ class ApiService {
     };
 
     try {
-      console.log('Making request to:', url);
-      console.log('Request options:', {
-        method: defaultOptions.method || 'GET',
-        headers: defaultOptions.headers,
-        bodyType: defaultOptions.body ? typeof defaultOptions.body : 'none',
-        isFormData: isFormData
-      });
-      
       const response = await fetch(url, defaultOptions);
-      
-      console.log('Response status:', response.status, response.statusText);
-      
+
       if (!response.ok) {
         let errorData: ApiErrorType;
         
@@ -410,6 +403,40 @@ export const studentAttendanceApi = {
   markAttendance: (data: { student_id: string; password: string }) =>
     apiService.request<{ student_name: string; message: string }>('/attendance/mark', {
       method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+// Student Dashboard API (authenticated student endpoints)
+export const studentDashboardApi = {
+  getProfile: () =>
+    apiService.request<ApiResponse<StudentProfile>>('/student/profile'),
+  updatePassword: (data: PasswordUpdateData) =>
+    apiService.request<ApiResponse<null>>('/student/password', {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+};
+
+// Absent Request API (authenticated student endpoints)
+export const absentRequestApi = {
+  getMyRequests: (params?: { limit?: number; offset?: number }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.limit) searchParams.set('limit', params.limit.toString());
+    if (params?.offset) searchParams.set('offset', params.offset.toString());
+    const query = searchParams.toString();
+    return apiService.request<PaginatedResponse<AbsentRequest>>(
+      `/absent-requests/current-student${query ? `?${query}` : ''}`
+    );
+  },
+  create: (data: AbsentRequestFormData) =>
+    apiService.request<ApiResponse<AbsentRequest>>('/absent-requests', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: number, data: Partial<AbsentRequestFormData>) =>
+    apiService.request<ApiResponse<AbsentRequest>>(`/absent-requests/absent-request-id/${id}`, {
+      method: 'PUT',
       body: JSON.stringify(data),
     }),
 };
