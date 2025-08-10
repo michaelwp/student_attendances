@@ -64,12 +64,17 @@ const App: React.FC = () => {
     return <LoginPage />;
   }
 
+  // Show student-specific page without layout for student users
+  if (user?.type === 'student') {
+    return (
+      <>
+        <StudentPage />
+        <ToastContainer />
+      </>
+    );
+  }
+
   const MainContent = () => {
-    // Show student-specific page for student users
-    if (user?.type === 'student') {
-      return <StudentPage />;
-    }
-    
     switch (path) {
       case '/teachers':
         return <TeachersPage />;
