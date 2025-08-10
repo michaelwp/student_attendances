@@ -1539,3 +1539,34 @@ A dedicated authenticated dashboard for teachers to manage their classes and rev
 - Students can only access their own data
 - Secure logout with token invalidation
 - Client-side validation combined with server-side security
+
+## UI/UX Improvements
+
+### Enhanced Login Page Experience
+The login page has been enhanced with improved navigation and user experience:
+
+**Features:**
+- **Smart Navigation**: Prominent "Back to Attendance" button in the top-left corner
+- **Consistent Design Language**: Navigation button uses the same styling as other interactive elements
+- **Multilingual Support**: Navigation button text supports both English ("Back to Attendance") and Indonesian ("Kembali ke Absensi")
+- **Accessibility**: Proper ARIA labels and keyboard navigation support
+- **Professional Styling**: Blue-themed button matching the application's design system
+- **Responsive Design**: Navigation adapts properly to mobile and desktop layouts
+
+**Navigation Flow:**
+1. Users accessing the login page can easily return to the attendance marking page
+2. Button uses hash navigation (`#/`) to return to the homepage
+3. Hover effects and focus states provide clear visual feedback
+4. Consistent with other navigation elements throughout the application
+
+**Design Consistency:**
+- Matches the styling of login links found on the student attendance homepage
+- Uses the application's primary blue color scheme
+- Follows the same spacing and typography conventions
+- Integrates seamlessly with the existing header layout (language and theme toggles)
+
+### User Experience Enhancements
+- **Intuitive Navigation**: Users can easily navigate between public attendance marking and authenticated dashboard access
+- **Clear Visual Hierarchy**: Important navigation elements are prominently displayed
+- **Consistent Interactions**: All navigation elements behave predictably across the application
+- **Mobile-Friendly**: All navigation improvements work seamlessly on mobile devices

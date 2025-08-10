@@ -26,7 +26,9 @@
       "userIdRequired": "ID pengguna diperlukan",
       "passwordRequired": "Kata sandi diperlukan",
       "passwordMinLength": "Kata sandi harus minimal {{length}} karakter"
-    }
+    },
+    "back_to_homepage": "Kembali ke Beranda",
+    "back_to_attendance": "Kembali ke Absensi"
   },
   "common": {
     "loading": "Memuat...",

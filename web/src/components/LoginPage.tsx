@@ -18,6 +18,20 @@ const LoginPage: React.FC = () => {
         </div>
       </header>
 
+      {/* Back to Homepage link */}
+      <div className="absolute top-6 left-6">
+        <button
+          onClick={() => window.location.hash = '#/'}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-600 bg-blue-100 hover:bg-blue-200 dark:text-blue-300 dark:bg-blue-900/50 dark:hover:bg-blue-900/70 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+          title={t('login.back_to_homepage')}
+        >
+          <svg className="-ml-1 mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+          </svg>
+          {t('login.back_to_attendance')}
+        </button>
+      </div>
+
       {/* Main content */}
       <div className="flex items-center justify-center min-h-screen p-4">
         <div className="w-full max-w-md">

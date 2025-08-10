@@ -26,7 +26,9 @@
       "userIdRequired": "User ID is required",
       "passwordRequired": "Password is required",
       "passwordMinLength": "Password must be at least {{length}} characters"
-    }
+    },
+    "back_to_homepage": "Back to Homepage",
+    "back_to_attendance": "Back to Attendance"
   },
   "common": {
     "loading": "Loading...",
